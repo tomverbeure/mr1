@@ -143,22 +143,62 @@ class Decode extends Component {
                 decoded_instr.itype     := InstrType.R
             }
         }
-        // ALU
+        // ALU, SHIFT
         is(B"0110011"){
-            when( (funct7 ## funct3) === B"0000000000" || (funct7 ## funct3) === B"0100000000"){
-                // ADD, SUB
-                decoded_instr.alu       := True
-                decoded_instr.itype     := InstrType.R
+            switch(funct7 ## funct3){
+                is(B"0000000_000", B"0100000_000", B"0000000_100", B"0000000_110", B"0000000_111"){
+                    // ADD, SUB, XOR, OR, AND
+                    decoded_instr.alu       := True
+                    decoded_instr.itype     := InstrType.R
+                }
+                is(B"0000000_001", B"0000000_101", B"0100000_101"){
+                    // SLL, SRL, SRA
+                    decoded_instr.shift     := True
+                    decoded_instr.itype     := InstrType.R
+                }
+                is( B"0000000_010", B"0000000_011") {
+                    // SLT, SLTU
+                    decoded_instr.alu       := True
+                    decoded_instr.itype     := InstrType.R
+                }
+                is(B"0000001_000", B"0000001_001", B"0000001_010", B"0000001_011"){
+                    // MUL
+                    if (hasMul){
+                        when(funct7 === B"0000001"){
+                            decoded_instr.mul       := True
+                            decoded_instr.itype     := InstrType.R
+                        }
+                    }
+                }
+                is(B"0000001_100", B"0000001_101", B"0000001_110", B"0000001_111"){
+                    // DIV
+                    if (hasDiv){
+                        when(funct7 === B"0000001"){
+                            decoded_instr.div       := True
+                            decoded_instr.itype     := InstrType.R
+                        }
+                    }
+                }
             }
-            .elsewhen( (funct7 ## funct3) === B"0000000001"){
-                // SLL
-                decoded_instr.shift       := True
-                decoded_instr.itype     := InstrType.R
+        }
+        // FENCE
+        is(B"0001111"){
+            when( funct3 === B"000" || funct3 === B"001"){
+                decoded_instr.fence     := True
+                decoded_instr.itype     := InstrType.I
             }
-            .elsewhen( (funct7 ## funct3) === B"0000000010" || (funct7 ## funct3) === B"0000000011") {
-                // SLT, SLTU
-                decoded_instr.alu       := True
-                decoded_instr.itype     := InstrType.R
+        }
+        // ECALL, EBREAK, CSR
+        is(B"1110011"){
+            when( io.instr(31 downto 7) === B"0000_0000_0000_0000_0000_0000_0" || io.instr(31 downto 7) === B"0000_0000_0001_0000_0000_0000_0")
+            {
+                decoded_instr.e         := True
+                decoded_instr.itype     := InstrType.I
+            }.elsewhen(funct3 === B"001" || funct3 === B"010" || funct3 === B"011" || funct3 === B"101" || funct3 === B"110" || funct3 === B"111") {
+                if (hasCsr){
+                    decoded_instr.csr       := True
+                    decoded_instr.itype     := InstrType.I
+                }
             }
         }
     }

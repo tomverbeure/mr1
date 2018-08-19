@@ -12,6 +12,7 @@ case class DecodedInstr(config: MR1Config) extends Bundle {
 case class Decode2Execute(config: MR1Config) extends Bundle {
 
     val valid           = Bool
+    val instr           = Bits(32 bits)
     val decoded_instr   = DecodedInstr(config)
 
     val rvfi = if (config.hasFormal) RVFI(config) else null
@@ -180,10 +181,11 @@ class Decode(config: MR1Config) extends Component {
     }
 
     val outputStage = new Area {
+        val d2e_valid_nxt = io.f2d.valid && !io.e2d.stall
 
-        io.d2e.valid         := RegNext(io.f2d.valid)
-        io.d2e.decoded_instr := RegNextWhen(decode.decoded_instr, io.f2d.valid && !io.e2d.stall).setName("d2e_decoded_instr")
-
+        io.d2e.valid         := RegNext(d2e_valid_nxt)
+        io.d2e.decoded_instr := RegNextWhen(decode.decoded_instr, d2e_valid_nxt).setName("d2e_decoded_instr")
+        io.d2e.instr         := RegNextWhen(decode.instr, d2e_valid_nxt).setName("d2e_instr")
     }
 
     io.d2f.stall := False

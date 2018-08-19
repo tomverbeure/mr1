@@ -89,14 +89,14 @@ class MR1(config: MR1Config) extends Component {
     fetch.io.instr          := io.instr
 
     val decode = new Decode(config)
-
     fetch.io.f2d <> decode.io.f2d
     fetch.io.d2f <> decode.io.d2f
 
-    io.rvfi <> decode.io.d2e.rvfi
+    val execute = new Execute(config)
+    decode.io.d2e <> execute.io.d2e
+    decode.io.e2d <> execute.io.e2d
 
-    decode.io.e2d.stall := False
-
+    io.rvfi <> execute.io.rvfi
 }
 
 object MR1Verilog {

@@ -19,6 +19,15 @@ case class Decode2Execute(config: MR1Config) extends Bundle {
 
 }
 
+case class Decode2RegFile(config: MR1Config) extends Bundle {
+
+    val rs1_rd      = Bool
+    val rs1_rd_addr = UInt(5 bits) 
+
+    val rs2_rd      = Bool
+    val rs2_rd_addr = UInt(5 bits) 
+}
+
 case class Execute2Decode(config: MR1Config) extends Bundle {
 
     val stall   = Bool
@@ -38,6 +47,8 @@ class Decode(config: MR1Config) extends Component {
 
         val d2e         = out(Decode2Execute(config))
         val e2d         = in(Execute2Decode(config))
+
+        val d2r         = out(Decode2RegFile(config))
     }
 
     val decode = new Area {

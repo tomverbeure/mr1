@@ -8,15 +8,18 @@ case class MR1Config(
                 supportDiv      : Boolean = true,
                 supportCsr      : Boolean = true,
                 supportFormal   : Boolean = true,
-                supportFence    : Boolean = false
+                supportFence    : Boolean = false,
+                supportAsyncReg  :Boolean = false
                 ) {
 
-    def hasMul   = supportMul
-    def hasDiv   = supportDiv
-    def hasCsr   = supportCsr
-    def hasFence = supportFence
+    def hasMul      = supportMul
+    def hasDiv      = supportDiv
+    def hasCsr      = supportCsr
+    def hasFence    = supportFence
 
-    def hasFormal = supportFormal
+    def hasAsyncReg = supportAsyncReg
+
+    def hasFormal   = supportFormal
 }
 
 case class RVFI(config: MR1Config) extends Bundle {
@@ -95,6 +98,12 @@ class MR1(config: MR1Config) extends Component {
     val execute = new Execute(config)
     decode.io.d2e <> execute.io.d2e
     decode.io.e2d <> execute.io.e2d
+
+    val reg_file = new RegFile(config)
+    decode.io.d2r <> reg_file.io.d2r
+    reg_file.io.rd_wr      := False
+    reg_file.io.rd_wr_addr := 0
+    reg_file.io.rd_wr_data := 0
 
     io.rvfi <> execute.io.rvfi
 }

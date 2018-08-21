@@ -68,10 +68,10 @@ object InstrType extends SpinalEnum {
     val B       = newElement()
     val L       = newElement()
     val S       = newElement()
-    val ALU_I   = newElement()
-    val SHIFT_I = newElement()
     val ALU     = newElement()
+    val ALU_I   = newElement()
     val SHIFT   = newElement()
+    val SHIFT_I = newElement()
     val FENCE   = newElement()
     val E       = newElement()
     val CSR     = newElement()
@@ -100,7 +100,9 @@ class MR1(config: MR1Config) extends Component {
     decode.io.e2d <> execute.io.e2d
 
     val reg_file = new RegFile(config)
-    decode.io.d2r <> reg_file.io.d2r
+    decode.io.d2r   <> reg_file.io.d2r
+    reg_file.io.r2e <> execute.io.r2e
+
     reg_file.io.rd_wr      := False
     reg_file.io.rd_wr_addr := 0
     reg_file.io.rd_wr_data := 0

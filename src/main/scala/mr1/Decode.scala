@@ -201,6 +201,11 @@ class Decode(config: MR1Config) extends Component {
 
     io.d2f.stall := False
 
+    io.d2r.rs1_rd := True
+    io.d2r.rs2_rd := True
+    io.d2r.rs1_rd_addr := U(decode.rs1)
+    io.d2r.rs2_rd_addr := U(decode.rs2)
+
     val formal = if (config.hasFormal) new Area {
 
         val rvfi = RVFI(config)

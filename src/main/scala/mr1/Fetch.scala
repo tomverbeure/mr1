@@ -19,13 +19,15 @@ class Fetch(config: MR1Config) extends Component {
     val io = new Bundle {
 
         val instr_valid     = in(Bool)
+        val instr_stall     = out(Bool)
         val instr           = in(Bits(32 bits))
 
         val f2d             =  out(Fetch2Decode(config))
         val d2f             =  in(Decode2Fetch(config))
     }
 
-    io.f2d.valid   := io.instr_valid
-    io.f2d.instr   := io.instr
+    io.f2d.valid   <> io.instr_valid
+    io.d2f.stall   <> io.instr_stall
+    io.f2d.instr   <> io.instr
 }
 

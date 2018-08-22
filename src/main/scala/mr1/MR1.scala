@@ -82,14 +82,16 @@ object InstrType extends SpinalEnum {
 class MR1(config: MR1Config) extends Component {
     val io = new Bundle {
         val instr_valid = in(Bool).setName("instr_valid")
+        val instr_stall = out(Bool).setName("instr_stall")
         val instr       = in(Bits(32 bits)).setName("instr")
 
         val rvfi        = if (config.hasFormal) out(RVFI(config).setName("rvfi")) else null
     }
 
     val fetch = new Fetch(config)
-    fetch.io.instr_valid    := io.instr_valid
-    fetch.io.instr          := io.instr
+    fetch.io.instr_valid    <> io.instr_valid
+    fetch.io.instr_stall    <> io.instr_stall
+    fetch.io.instr          <> io.instr
 
     val decode = new Decode(config)
     fetch.io.f2d <> decode.io.f2d

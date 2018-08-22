@@ -128,6 +128,10 @@ class Execute(config: MR1Config) extends Component {
 
             io.rvfi.rd_wdata  := (rd_wr_addr =/= 0) ? B(alu.result) | B"32'd0"
         }
+
+        when(io.e2d.pc_jump_valid && io.e2d.pc_jump(1 downto 0) =/= "00"){
+            io.rvfi.trap := True
+        }
     }
 
 }

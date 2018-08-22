@@ -102,7 +102,7 @@ class Decode(config: MR1Config) extends Component {
             }
             // Bxx
             is(B"1100011"){
-                when(funct3 =/= B"010" && funct3 =/= B"011" && !b_imm_12_1(0)) {
+                when(funct3 =/= B"010" && funct3 =/= B"011") {
                     decoded_instr.itype     := InstrType.B
                     decoded_instr.iformat   := InstrFormat.B
                 }

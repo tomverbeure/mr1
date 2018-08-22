@@ -12,6 +12,7 @@ case class DecodedInstr(config: MR1Config) extends Bundle {
 case class Decode2Execute(config: MR1Config) extends Bundle {
 
     val valid           = Bool
+    val pc              = UInt(32 bits)
     val instr           = Bits(32 bits)
     val decoded_instr   = DecodedInstr(config)
 
@@ -32,6 +33,8 @@ case class Execute2Decode(config: MR1Config) extends Bundle {
 
     val stall   = Bool
 
+    val pc_jump_valid = Bool                // FIXME: This is probably redundant with stall, but let's leave it for now.
+    val pc_jump       = UInt(32 bits)
 }
 
 class Decode(config: MR1Config) extends Component {
@@ -50,6 +53,7 @@ class Decode(config: MR1Config) extends Component {
 
         val d2r         = out(Decode2RegFile(config))
     }
+
 
     val decode = new Area {
 
@@ -191,15 +195,48 @@ class Decode(config: MR1Config) extends Component {
         }
     }
 
+    val pc = new Area {
+        val pc     = Reg(UInt(32 bits)) init(0)
+        val pc_nxt = UInt(32 bits)
+
+        val wait_for_pc_jump = Reg(Bool) init(False)
+        val pc_jump_stall = Bool
+
+        pc_jump_stall := wait_for_pc_jump
+        pc_nxt := pc + 4
+
+        when(io.f2d.valid && !io.e2d.stall){
+
+            when(!wait_for_pc_jump){
+                switch(decode.decoded_instr.itype){
+                    is(InstrType.B, InstrType.JAL, InstrType.JALR){
+                        pc_jump_stall := True
+                    }
+                    default{
+                        pc_jump_stall := False
+                        pc_nxt := pc + 4
+                    }
+                }
+            }.elsewhen(io.e2d.pc_jump_valid){
+                pc_jump_stall := False
+                pc_nxt := pc + io.e2d.pc_jump
+            }
+            pc := pc_nxt
+        }
+
+        wait_for_pc_jump := pc_jump_stall
+    }
+
     val outputStage = new Area {
         val d2e_valid_nxt = io.f2d.valid && !io.e2d.stall
 
         io.d2e.valid         := RegNext(d2e_valid_nxt)
+        io.d2e.pc            := RegNext(pc.pc)
         io.d2e.decoded_instr := RegNextWhen(decode.decoded_instr, d2e_valid_nxt).setName("d2e_decoded_instr")
         io.d2e.instr         := RegNextWhen(decode.instr, d2e_valid_nxt).setName("d2e_instr")
     }
 
-    io.d2f.stall := False
+    io.d2f.stall := pc.pc_jump_stall || io.e2d.stall
 
     io.d2r.rs1_rd := True
     io.d2r.rs2_rd := True
@@ -215,7 +252,7 @@ class Decode(config: MR1Config) extends Component {
             order := order + 1
         }
 
-        rvfi.valid      := io.f2d.valid
+        rvfi.valid      := outputStage.d2e_valid_nxt
         rvfi.order      := order
         rvfi.insn       := io.f2d.instr
         rvfi.trap       := (decode.decoded_instr.iformat === InstrFormat.Undef)
@@ -227,8 +264,8 @@ class Decode(config: MR1Config) extends Component {
         rvfi.rs2_rdata  := 0
         rvfi.rd_addr    := decode.rd
         rvfi.rd_wdata   := 0
-        rvfi.pc_rdata   := 0
-        rvfi.pc_wdata   := 0
+        rvfi.pc_rdata   := B(pc.pc)
+        rvfi.pc_wdata   := B(pc.pc_nxt)
         rvfi.mem_addr   := 0
         rvfi.mem_rmask  := 0
         rvfi.mem_wmask  := 0

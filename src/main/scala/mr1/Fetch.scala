@@ -8,7 +8,6 @@ case class Fetch2Decode(config: MR1Config) extends Bundle {
 
     val valid               = Bool
     val instr               = Bits(32 bits)
-
 }
 
 case class Decode2Fetch(config: MR1Config) extends Bundle {

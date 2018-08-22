@@ -102,7 +102,7 @@ class Decode(config: MR1Config) extends Component {
             }
             // Bxx
             is(B"1100011"){
-                when(funct3 =/= B"010" && funct3 =/= B"011") {
+                when(funct3 =/= B"010" && funct3 =/= B"011" && !b_imm_12_1(0)) {
                     decoded_instr.itype     := InstrType.B
                     decoded_instr.iformat   := InstrFormat.B
                 }
@@ -230,8 +230,8 @@ class Decode(config: MR1Config) extends Component {
     val outputStage = new Area {
         val d2e_valid_nxt = io.f2d.valid && !io.e2d.stall
 
-        io.d2e.valid         := RegNext(d2e_valid_nxt)
-        io.d2e.pc            := RegNext(pc.pc)
+        io.d2e.valid         := RegNext(d2e_valid_nxt).setName("d2e_valid")
+        io.d2e.pc            := RegNext(pc.pc).setName("d2e_pc")
         io.d2e.decoded_instr := RegNextWhen(decode.decoded_instr, d2e_valid_nxt).setName("d2e_decoded_instr")
         io.d2e.instr         := RegNextWhen(decode.instr, d2e_valid_nxt).setName("d2e_instr")
     }

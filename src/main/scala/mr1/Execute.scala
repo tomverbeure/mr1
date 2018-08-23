@@ -55,13 +55,54 @@ class Execute(config: MR1Config) extends Component {
                                         U(rs1) - U(rs2),
                                         U(rs1) + U(rs2))
                     }
+                    is (B"010"){        // SLT
+                        rd_wr    := True
+                        rd_wdata := U(S(rs1) < S(rs2)).resize(32)
+                    }
+                    is (B"011"){        // SLTU
+                        rd_wr    := True
+                        rd_wdata := U(U(rs1) < U(rs2)).resize(32)
+                    }
                     is(B"100"){         // XOR
                         rd_wr    := True
                         rd_wdata := U(rs1) ^ U(rs2)
                     }
+                    is(B"110"){         // OR
+                        rd_wr    := True
+                        rd_wdata := U(rs1) | U(rs2)
+                    }
+                    is(B"111"){         // AND
+                        rd_wr    := True
+                        rd_wdata := U(rs1) & U(rs2)
+                    }
                 }
             }
             is(InstrType.ALU_I){
+            }
+        }
+    }
+
+    val shift = new Area {
+        val rd_wr    = False
+        val rd_wdata = U(0, 32 bits)
+
+        switch(itype){
+            is(InstrType.SHIFT){
+                switch(funct3){
+                    is(B"001"){             // SLL
+                        rd_wr    := True
+                        rd_wdata := U(rs1) |<< U(rs2(4 downto 0))
+                    }
+                    is(B"101"){
+                        when(instr(30)){    // SRA
+                            rd_wr    := True
+                            rd_wdata := U(rs1) >> U(rs2(4 downto 0))
+                        }.otherwise{        // SRA
+                            rd_wr    := True
+                            rd_wdata := U(rs1) |>> U(rs2(4 downto 0))
+                        }
+                    }
+                }
             }
         }
     }
@@ -119,13 +160,18 @@ class Execute(config: MR1Config) extends Component {
         }
     }
 
-    val rd_waddr  = (alu.rd_wr | jump.rd_wr) ? instr(11 downto 7) | B"5'd0" 
+    val rd_wr     = (alu.rd_wr | jump.rd_wr | shift.rd_wr) && (instr(11 downto 7) =/= 0)
+    val rd_waddr  = rd_wr ? instr(11 downto 7) | B"5'd0"
 
     val rd_wdata = B(0, 32 bits)
-    when(alu.rd_wr){
-        rd_wdata := B(alu.rd_wdata)
-    }.elsewhen(jump.rd_wr){
-        rd_wdata := B(jump.rd_wdata)
+    when(rd_wr){
+        when(alu.rd_wr){
+            rd_wdata := B(alu.rd_wdata)
+        }.elsewhen(jump.rd_wr){
+            rd_wdata := B(jump.rd_wdata)
+        }.elsewhen(shift.rd_wr){
+            rd_wdata := B(shift.rd_wdata)
+        }
     }
 
     val formal = if (config.hasFormal) new Area {

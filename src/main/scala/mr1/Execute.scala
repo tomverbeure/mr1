@@ -41,23 +41,23 @@ class Execute(config: MR1Config) extends Component {
     val i_imm_11_0 = instr(31 downto 20)
     val b_imm_12_1 = S(instr(31) ## instr(7) ## instr(30 downto 25) ## instr(11 downto 8))
 
-    val rd_wr_addr  = instr(11 downto 7)
 
     val alu = new Area {
-        val result = UInt(32 bits)
-
-        result := U"32'd0"
+        val rd_wr    = False
+        val rd_wdata = U(0, 32 bits)
 
         switch(itype){
             is(InstrType.ALU){
                 switch(funct3){
                     is(B"000"){         // ADD/SUB
-                        result := Mux(instr(30),
-                                      U(rs1) - U(rs2),
-                                      U(rs1) + U(rs2))
+                        rd_wr    := True
+                        rd_wdata := Mux(instr(30),
+                                        U(rs1) - U(rs2),
+                                        U(rs1) + U(rs2))
                     }
                     is(B"100"){         // XOR
-                        result := U(rs1) ^ U(rs2)
+                        rd_wr    := True
+                        rd_wdata := U(rs1) ^ U(rs2)
                     }
                 }
             }
@@ -67,6 +67,9 @@ class Execute(config: MR1Config) extends Component {
     }
 
     val jump = new Area {
+
+        val rd_wr    = False
+        val rd_wdata = U(0, 32 bits)
 
         val pc      = UInt(32 bits)
         val pc_jump = UInt(32 bits)
@@ -116,6 +119,15 @@ class Execute(config: MR1Config) extends Component {
         }
     }
 
+    val rd_waddr  = (alu.rd_wr | jump.rd_wr) ? instr(11 downto 7) | B"5'd0" 
+
+    val rd_wdata = B(0, 32 bits)
+    when(alu.rd_wr){
+        rd_wdata := B(alu.rd_wdata)
+    }.elsewhen(jump.rd_wr){
+        rd_wdata := B(jump.rd_wdata)
+    }
+
     val formal = if (config.hasFormal) new Area {
 
         val rvfi = io.d2e.rvfi
@@ -126,7 +138,11 @@ class Execute(config: MR1Config) extends Component {
             io.rvfi.rs1_rdata := io.r2e.rs1_data
             io.rvfi.rs2_rdata := io.r2e.rs2_data
 
-            io.rvfi.rd_wdata  := (rd_wr_addr =/= 0) ? B(alu.result) | B"32'd0"
+            io.rvfi.rd_addr   := rd_waddr
+            io.rvfi.rd_wdata  := rd_wdata
+        }
+        when(io.e2d.pc_jump_valid){
+            io.rvfi.pc_wdata  := B(io.e2d.pc_jump)
         }
 
         when(io.e2d.pc_jump_valid && io.e2d.pc_jump(1 downto 0) =/= "00"){

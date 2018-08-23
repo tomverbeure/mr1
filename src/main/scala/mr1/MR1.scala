@@ -109,12 +109,13 @@ class MR1(config: MR1Config) extends Component {
     reg_file.io.rd_wr_addr := 0
     reg_file.io.rd_wr_data := 0
 
-    io.rvfi <> execute.io.rvfi
+    if (config.hasFormal)
+        io.rvfi <> execute.io.rvfi
 }
 
 object MR1Verilog {
     def main(args: Array[String]) {
-        SpinalVerilog(new MR1(config = MR1Config()))
+        SpinalVerilog(new MR1(config = MR1Config(supportFormal = true)))
     }
 }
 

@@ -17,7 +17,7 @@ class Execute(config: MR1Config) extends Component {
 
         val r2e         = in(RegFile2Execute(config))
 
-        val rvfi        = out(RVFI(config))
+        val rvfi        = if (config.hasFormal) out(RVFI(config)) else null
     }
 
     io.e2d.stall := False
@@ -244,7 +244,7 @@ class Execute(config: MR1Config) extends Component {
         when(io.e2d.pc_jump_valid && io.e2d.pc_jump(1 downto 0) =/= "00"){
             io.rvfi.trap := True
         }
-    }
+    } else null
 
 }
 

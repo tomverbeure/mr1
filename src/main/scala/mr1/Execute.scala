@@ -55,11 +55,11 @@ class Execute(config: MR1Config) extends Component {
                                         U(rs1) - U(rs2),
                                         U(rs1) + U(rs2))
                     }
-                    is (B"010"){        // SLT
+                    is(B"010"){         // SLT
                         rd_wr    := True
                         rd_wdata := U(S(rs1) < S(rs2)).resize(32)
                     }
-                    is (B"011"){        // SLTU
+                    is(B"011"){         // SLTU
                         rd_wr    := True
                         rd_wdata := U(U(rs1) < U(rs2)).resize(32)
                     }
@@ -78,6 +78,32 @@ class Execute(config: MR1Config) extends Component {
                 }
             }
             is(InstrType.ALU_I){
+                switch(funct3){
+                    is(B"000"){         // ADDI
+                        rd_wr    := True
+                        rd_wdata := U(S(rs1) + S(i_imm_11_0).resize(32))
+                    }
+                    is(B"010"){         // SLT
+                        rd_wr    := True
+                        rd_wdata := U(S(rs1) < S(i_imm_11_0).resize(32)).resize(32)
+                    }
+                    is(B"011"){         // SLTIU
+                        rd_wr    := True
+                        rd_wdata := U(U(rs1) < U(S(i_imm_11_0).resize(32))).resize(32)
+                    }
+                    is(B"100"){         // XORI
+                        rd_wr    := True
+                        rd_wdata := U(S(rs1) ^ S(i_imm_11_0).resize(32))
+                    }
+                    is(B"110"){         // ORI
+                        rd_wr    := True
+                        rd_wdata := U(S(rs1) | S(i_imm_11_0).resize(32))
+                    }
+                    is(B"111"){         // ANDI
+                        rd_wr    := True
+                        rd_wdata := U(S(rs1) & S(i_imm_11_0).resize(32))
+                    }
+                }
             }
         }
     }
@@ -85,6 +111,7 @@ class Execute(config: MR1Config) extends Component {
     val shift = new Area {
         val rd_wr    = False
         val rd_wdata = U(0, 32 bits)
+        val shamt    = U(instr(24 downto 20))
 
         switch(itype){
             is(InstrType.SHIFT){
@@ -96,10 +123,27 @@ class Execute(config: MR1Config) extends Component {
                     is(B"101"){
                         when(instr(30)){    // SRA
                             rd_wr    := True
-                            rd_wdata := U(rs1) >> U(rs2(4 downto 0))
-                        }.otherwise{        // SRA
+                            rd_wdata := U(S(rs1) >> U(rs2(4 downto 0)))
+                        }.otherwise{        // SRL
                             rd_wr    := True
                             rd_wdata := U(rs1) |>> U(rs2(4 downto 0))
+                        }
+                    }
+                }
+            }
+            is(InstrType.SHIFT_I){
+                switch(funct3){
+                    is(B"001"){             // SLLI
+                        rd_wr    := True
+                        rd_wdata := U(rs1) |<< shamt
+                    }
+                    is(B"101"){
+                        when(instr(30)){    // SRAI
+                            rd_wr    := True
+                            rd_wdata := U(S(rs1) >> shamt)
+                        }.otherwise{        // SRLI
+                            rd_wr    := True
+                            rd_wdata := U(rs1) |>> shamt
                         }
                     }
                 }
@@ -180,13 +224,19 @@ class Execute(config: MR1Config) extends Component {
 
         io.rvfi := rvfi
 
-        when(True){
+        when(io.r2e.rs1_data =/= 0){
             io.rvfi.rs1_rdata := io.r2e.rs1_data
-            io.rvfi.rs2_rdata := io.r2e.rs2_data
+        }
 
+        when(io.r2e.rs2_data =/= 0){
+            io.rvfi.rs2_rdata := io.r2e.rs2_data
+        }
+
+        when(True){
             io.rvfi.rd_addr   := rd_waddr
             io.rvfi.rd_wdata  := rd_wdata
         }
+
         when(io.e2d.pc_jump_valid){
             io.rvfi.pc_wdata  := B(io.e2d.pc_jump)
         }

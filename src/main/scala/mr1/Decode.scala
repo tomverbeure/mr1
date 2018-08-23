@@ -129,7 +129,7 @@ class Decode(config: MR1Config) extends Component {
                 }.elsewhen( (funct7 ## funct3) === B"0000000001" || (funct7 ## funct3) === B"0000000101" || (funct7 ## funct3) === B"0100000101") {
                     // SHIFT_I
                     decoded_instr.itype     := InstrType.SHIFT_I
-                    decoded_instr.iformat   := InstrFormat.R
+                    decoded_instr.iformat   := InstrFormat.I
                 }
             }
             // ALU, SHIFT
@@ -238,10 +238,24 @@ class Decode(config: MR1Config) extends Component {
 
     io.d2f.stall := pc.pc_jump_stall || io.e2d.stall
 
-    io.d2r.rs1_rd := True
-    io.d2r.rs2_rd := True
-    io.d2r.rs1_rd_addr := U(decode.rs1)
-    io.d2r.rs2_rd_addr := U(decode.rs2)
+    val rs1_valid =  (decode.decoded_instr.iformat === InstrFormat.R) ||
+                     (decode.decoded_instr.iformat === InstrFormat.I) ||
+                     (decode.decoded_instr.iformat === InstrFormat.S) ||
+                     (decode.decoded_instr.iformat === InstrFormat.B)
+
+    val rs2_valid =  (decode.decoded_instr.iformat === InstrFormat.R) ||
+                     (decode.decoded_instr.iformat === InstrFormat.S) ||
+                     (decode.decoded_instr.iformat === InstrFormat.B)
+
+    val rd_valid =   (decode.decoded_instr.iformat === InstrFormat.R) ||
+                     (decode.decoded_instr.iformat === InstrFormat.I) ||
+                     (decode.decoded_instr.iformat === InstrFormat.U) ||
+                     (decode.decoded_instr.iformat === InstrFormat.J)
+
+    io.d2r.rs1_rd := True           // FIXME: or rs1_valid...
+    io.d2r.rs2_rd := True           // FIXME: or rs2_valid...
+    io.d2r.rs1_rd_addr := rs1_valid ? U(decode.rs1) | 0
+    io.d2r.rs2_rd_addr := rs2_valid ? U(decode.rs2) | 0
 
     val formal = if (config.hasFormal) new Area {
 
@@ -258,11 +272,11 @@ class Decode(config: MR1Config) extends Component {
         rvfi.trap       := (decode.decoded_instr.iformat === InstrFormat.Undef)
         rvfi.halt       := False
         rvfi.intr       := False
-        rvfi.rs1_addr   := decode.rs1
-        rvfi.rs2_addr   := decode.rs2
+        rvfi.rs1_addr   := rs1_valid ? decode.rs1 | 0
+        rvfi.rs2_addr   := rs2_valid ? decode.rs2 | 0
         rvfi.rs1_rdata  := 0
         rvfi.rs2_rdata  := 0
-        rvfi.rd_addr    := decode.rd
+        rvfi.rd_addr    := rd_valid ?  decode.rd | 0
         rvfi.rd_wdata   := 0
         rvfi.pc_rdata   := B(pc.pc)
         rvfi.pc_wdata   := B(pc.pc_nxt)

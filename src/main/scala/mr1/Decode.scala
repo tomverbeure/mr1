@@ -79,49 +79,49 @@ class Decode(config: MR1Config) extends Component {
 
         switch(opcode){
             // LUI
-            is(B"0110111"){
+            is(Opcodes.LUI){
                 decoded_instr.itype     := InstrType.LUI
                 decoded_instr.iformat   := InstrFormat.U
             }
             // AUIPC
-            is(B"0010111"){
+            is(Opcodes.AUIPC){
                 decoded_instr.itype     := InstrType.AUIPC
                 decoded_instr.iformat   := InstrFormat.U
             }
             // JAL
-            is(B"1101111"){
+            is(Opcodes.JAL){
                 decoded_instr.itype     := InstrType.JAL
                 decoded_instr.iformat   := InstrFormat.J
             }
             // JALR
-            is(B"1100111"){
+            is(Opcodes.JALR){
                 when(funct3 === B"000") {
                     decoded_instr.itype     := InstrType.JALR
                     decoded_instr.iformat   := InstrFormat.I
                 }
             }
             // Bxx
-            is(B"1100011"){
+            is(Opcodes.B){
                 when(funct3 =/= B"010" && funct3 =/= B"011") {
                     decoded_instr.itype     := InstrType.B
                     decoded_instr.iformat   := InstrFormat.B
                 }
             }
             // Lxx
-            is(B"0000011"){
+            is(Opcodes.L){
                 when(funct3 =/= B"010" && funct3 =/= B"011" && funct3 =/= B"110" && funct3 =/= B"111") {
                     decoded_instr.itype     := InstrType.L
                     decoded_instr.iformat   := InstrFormat.I
                 }
             }
             // Sx
-            is(B"0100011"){
+            is(Opcodes.S){
                 when(funct3 === B"000" || funct3 === B"001" || funct3 === B"010") {
                     decoded_instr.itype     := InstrType.S
                     decoded_instr.iformat   := InstrFormat.S
                 }
             }
-            is(B"0010011"){
+            is(Opcodes.ALUI){
                 when(funct3 === B"000" || funct3 === B"010" || funct3 === B"011" || funct3 === B"100" || funct3 === B"110" || funct3 === B"111") {
                     // ALU_I
                     decoded_instr.itype     := InstrType.ALU_I
@@ -133,7 +133,7 @@ class Decode(config: MR1Config) extends Component {
                 }
             }
             // ALU, SHIFT
-            is(B"0110011"){
+            is(Opcodes.ALU){
                 switch(funct7 ## funct3){
                     is(B"0000000_000", B"0100000_000", B"0000000_100", B"0000000_110", B"0000000_111"){
                         // ADD, SUB, XOR, OR, AND
@@ -171,7 +171,7 @@ class Decode(config: MR1Config) extends Component {
                 }
             }
             // FENCE
-            is(B"0001111"){
+            is(Opcodes.F){
                 if (hasFence){
                     when( funct3 === B"000" || funct3 === B"001"){
                         decoded_instr.itype     := InstrType.FENCE
@@ -180,7 +180,7 @@ class Decode(config: MR1Config) extends Component {
                 }
             }
             // ECALL, EBREAK, CSR
-            is(B"1110011"){
+            is(Opcodes.SYS){
                 when( instr(31 downto 7) === B"0000_0000_0000_0000_0000_0000_0" || instr(31 downto 7) === B"0000_0000_0001_0000_0000_0000_0")
                 {
                     decoded_instr.itype     := InstrType.E

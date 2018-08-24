@@ -79,19 +79,31 @@ object InstrType extends SpinalEnum {
     val DIV     = newElement()
 }
 
+case class InstrReqIntfc(config: MR1Config) extends Bundle() {
+
+        val valid       = out(Bool)
+        val ready       = in(Bool)
+        val addr        = out(Bits(32 bits))
+}
+
+case class InstrRspIntfc(config: MR1Config) extends Bundle() {
+
+        val valid       = in(Bool)
+        val data        = in(Bits(32 bits))
+}
+
 class MR1(config: MR1Config) extends Component {
     val io = new Bundle {
-        val instr_valid = in(Bool).setName("instr_valid")
-        val instr_stall = out(Bool).setName("instr_stall")
-        val instr       = in(Bits(32 bits)).setName("instr")
+        val instr_req = InstrReqIntfc(config).setName("instr_req")
+        val instr_rsp = InstrRspIntfc(config).setName("instr_rsp")
 
         val rvfi        = if (config.hasFormal) out(RVFI(config).setName("rvfi")) else null
     }
 
     val fetch = new Fetch(config)
-    fetch.io.instr_valid    <> io.instr_valid
-    fetch.io.instr_stall    <> io.instr_stall
-    fetch.io.instr          <> io.instr
+
+    io.instr_req <> fetch.io.instr_req
+    io.instr_rsp <> fetch.io.instr_rsp
 
     val decode = new Decode(config)
     fetch.io.f2d <> decode.io.f2d

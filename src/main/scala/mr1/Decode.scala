@@ -78,43 +78,36 @@ class Decode(config: MR1Config) extends Component {
         decoded_instr.itype     := InstrType.LUI
 
         switch(opcode){
-            // LUI
             is(Opcodes.LUI){
                 decoded_instr.itype     := InstrType.LUI
                 decoded_instr.iformat   := InstrFormat.U
             }
-            // AUIPC
             is(Opcodes.AUIPC){
                 decoded_instr.itype     := InstrType.AUIPC
                 decoded_instr.iformat   := InstrFormat.U
             }
-            // JAL
             is(Opcodes.JAL){
                 decoded_instr.itype     := InstrType.JAL
                 decoded_instr.iformat   := InstrFormat.J
             }
-            // JALR
             is(Opcodes.JALR){
                 when(funct3 === B"000") {
                     decoded_instr.itype     := InstrType.JALR
                     decoded_instr.iformat   := InstrFormat.I
                 }
             }
-            // Bxx
             is(Opcodes.B){
                 when(funct3 =/= B"010" && funct3 =/= B"011") {
                     decoded_instr.itype     := InstrType.B
                     decoded_instr.iformat   := InstrFormat.B
                 }
             }
-            // Lxx
             is(Opcodes.L){
                 when(funct3 =/= B"010" && funct3 =/= B"011" && funct3 =/= B"110" && funct3 =/= B"111") {
                     decoded_instr.itype     := InstrType.L
                     decoded_instr.iformat   := InstrFormat.I
                 }
             }
-            // Sx
             is(Opcodes.S){
                 when(funct3 === B"000" || funct3 === B"001" || funct3 === B"010") {
                     decoded_instr.itype     := InstrType.S
@@ -132,7 +125,6 @@ class Decode(config: MR1Config) extends Component {
                     decoded_instr.iformat   := InstrFormat.I
                 }
             }
-            // ALU, SHIFT
             is(Opcodes.ALU){
                 switch(funct7 ## funct3){
                     is(B"0000000_000", B"0100000_000", B"0000000_100", B"0000000_110", B"0000000_111"){
@@ -170,7 +162,6 @@ class Decode(config: MR1Config) extends Component {
                     }
                 }
             }
-            // FENCE
             is(Opcodes.F){
                 if (hasFence){
                     when( funct3 === B"000" || funct3 === B"001"){
@@ -237,6 +228,9 @@ class Decode(config: MR1Config) extends Component {
     }
 
     io.d2f.stall := pc.pc_jump_stall || io.e2d.stall
+
+    io.d2f.pc_jump_valid <> io.e2d.pc_jump_valid
+    io.d2f.pc_jump       <> io.e2d.pc_jump
 
     val rs1_valid =  (decode.decoded_instr.iformat === InstrFormat.R) ||
                      (decode.decoded_instr.iformat === InstrFormat.I) ||

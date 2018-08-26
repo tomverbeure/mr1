@@ -75,7 +75,7 @@ class Decode(config: MR1Config) extends Component {
         val s_imm_11_0  = instr(31 downto 25) ## instr(11 downto 7)
         val b_imm_12_1  = instr(31) ## instr(7) ## instr(30 downto 25) ## instr(11 downto 8)
         val u_imm_31_12 = instr(31 downto 12)
-        val j_imm_20_1  = instr(20) ## instr(19 downto 12) ## instr(20) ## instr(30 downto 21)
+        val j_imm_20_1  = instr(31) ## instr(19 downto 12) ## instr(20) ## instr(30 downto 21)
 
         val decoded_instr       = DecodedInstr(config)
 

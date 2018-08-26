@@ -54,8 +54,6 @@ class Fetch(config: MR1Config) extends Component {
         val send_instr       = False
         val send_instr_r_set = False
 
-        real_pc := 0
-
         object PcState extends SpinalEnum {
             val Idle           = newElement()
             val WaitReqReady   = newElement()

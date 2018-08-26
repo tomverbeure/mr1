@@ -38,9 +38,10 @@ class Execute(config: MR1Config) extends Component {
     rs1 := io.r2e.rs1_data
     rs2 := io.r2e.rs2_data
 
-    val i_imm_11_0 = instr(31 downto 20)
-    val b_imm_12_1 = S(instr(31) ## instr(7) ## instr(30 downto 25) ## instr(11 downto 8))
-    val j_imm_20_1 = S(instr(31) ## instr(19 downto 12) ## instr(20) ## instr(30 downto 21))
+    val i_imm_11_0  = instr(31 downto 20)
+    val b_imm_12_1  = S(instr(31) ## instr(7) ## instr(30 downto 25) ## instr(11 downto 8))
+    val j_imm_20_1  = S(instr(31) ## instr(19 downto 12) ## instr(20) ## instr(30 downto 21))
+    val u_imm_31_12 = U(instr(31 downto 12))
 
 
     val alu = new Area {
@@ -210,6 +211,10 @@ class Execute(config: MR1Config) extends Component {
 
                 rd_wr    := True
                 rd_wdata := pc +4
+            }
+            is(InstrType.AUIPC){
+                rd_wr    := True
+                rd_wdata := pc + (u_imm_31_12 << 12)
             }
         }
     }

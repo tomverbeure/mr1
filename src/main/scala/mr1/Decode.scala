@@ -18,6 +18,11 @@ case class Decode2Execute(config: MR1Config) extends Bundle {
 
     val rvfi = if (config.hasFormal) RVFI(config) else null
 
+    def init() : Decode2Execute = {
+        valid init(False)
+        this
+    }
+
 }
 
 case class Decode2RegFile(config: MR1Config) extends Bundle {

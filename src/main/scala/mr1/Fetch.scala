@@ -8,6 +8,11 @@ case class Fetch2Decode(config: MR1Config) extends Bundle {
 
     val valid               = Bool
     val instr               = Bits(32 bits)
+
+    def init() : Fetch2Decode = {
+        valid init(False)
+        this
+    }
 }
 
 case class Decode2Fetch(config: MR1Config) extends Bundle {
@@ -139,7 +144,7 @@ class Fetch(config: MR1Config) extends Component {
                     (!io.d2f.stall       ? False  |
                                            send_instr_r))
 
-    val f2d = Reg(Fetch2Decode(config))
+    val f2d = Reg(Fetch2Decode(config)) init()
 
     when(pc.send_instr){
         f2d.valid := True

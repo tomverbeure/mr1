@@ -92,10 +92,30 @@ case class InstrRspIntfc(config: MR1Config) extends Bundle() {
         val data        = in(Bits(32 bits))
 }
 
+case class DataReqIntfc(config: MR1Config) extends Bundle() {
+
+        val valid       = out(Bool)
+        val ready       = in(Bool)
+        val addr        = out(Bits(32 bits))
+        val wr          = out(Bool)
+        val wr_mask     = out(Bits(4 bits))
+        val wr_data     = out(Bits(32 bits))
+}
+
+case class DataRspIntfc(config: MR1Config) extends Bundle() {
+
+        val valid       = in(Bool)
+        val data        = in(Bits(32 bits))
+}
+
+
 class MR1(config: MR1Config) extends Component {
     val io = new Bundle {
         val instr_req = InstrReqIntfc(config).setName("instr_req")
         val instr_rsp = InstrRspIntfc(config).setName("instr_rsp")
+
+        val data_req  = DataReqIntfc(config).setName("data_req")
+        val data_rsp  = DataRspIntfc(config).setName("data_rsp")
 
         val rvfi        = if (config.hasFormal) out(RVFI(config).setName("rvfi")) else null
     }
@@ -112,6 +132,9 @@ class MR1(config: MR1Config) extends Component {
     val execute = new Execute(config)
     decode.io.d2e <> execute.io.d2e
     decode.io.e2d <> execute.io.e2d
+
+    io.data_req <> execute.io.data_req
+    io.data_rsp <> execute.io.data_rsp
 
     val reg_file = new RegFile(config)
     decode.io.d2r   <> reg_file.io.d2r

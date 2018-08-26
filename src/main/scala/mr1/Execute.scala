@@ -17,6 +17,9 @@ class Execute(config: MR1Config) extends Component {
 
         val r2e         = in(RegFile2Execute(config))
 
+        val data_req    = DataReqIntfc(config)
+        val data_rsp    = DataRspIntfc(config)
+
         val rvfi        = if (config.hasFormal) out(RVFI(config)) else null
     }
 
@@ -221,6 +224,14 @@ class Execute(config: MR1Config) extends Component {
                 rd_wdata := pc + (u_imm_31_12 << 12)
             }
         }
+    }
+
+    val mem = new Area {
+        io.data_req.valid   := False
+        io.data_req.addr    := 0
+        io.data_req.wr      := False
+        io.data_req.wr_mask := 0
+        io.data_req.wr_data := 0
     }
 
     val rd_wr     = io.d2e.valid && (alu.rd_wr | jump.rd_wr | shift.rd_wr) && (instr(11 downto 7) =/= 0)

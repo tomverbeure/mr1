@@ -212,6 +212,10 @@ class Execute(config: MR1Config) extends Component {
                 rd_wr    := True
                 rd_wdata := pc +4
             }
+            is(InstrType.LUI){
+                rd_wr    := True
+                rd_wdata := u_imm_31_12 << 12
+            }
             is(InstrType.AUIPC){
                 rd_wr    := True
                 rd_wdata := pc + (u_imm_31_12 << 12)

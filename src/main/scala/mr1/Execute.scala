@@ -156,16 +156,16 @@ class Execute(config: MR1Config) extends Component {
         val rd_wr    = False
         val rd_wdata = U(0, 32 bits)
 
-        val pc      = UInt(32 bits)
-        val pc_jump = UInt(32 bits)
+        val pc_jump_valid = False
+        val pc            = UInt(32 bits)
+        val pc_jump       = UInt(32 bits)
+
         val branch_cond = Bool
 
         pc          := io.d2e.pc
         pc_jump     := pc + 4
         branch_cond := False
 
-        io.e2d.pc_jump_valid := False
-        io.e2d.pc_jump       := pc_jump
 
         switch(itype){
             is(InstrType.B){
@@ -194,8 +194,7 @@ class Execute(config: MR1Config) extends Component {
                     pc_jump := U(S(U("0") ## pc) + (b_imm_12_1 @@ S("0")))(31 downto 0)
                 }
 
-                io.e2d.pc_jump_valid := True
-                io.e2d.pc_jump       := pc_jump
+                pc_jump_valid := True
             }
             is(InstrType.JAL){
             }
@@ -204,7 +203,7 @@ class Execute(config: MR1Config) extends Component {
         }
     }
 
-    val rd_wr     = (alu.rd_wr | jump.rd_wr | shift.rd_wr) && (instr(11 downto 7) =/= 0)
+    val rd_wr     = io.d2e.valid && (alu.rd_wr | jump.rd_wr | shift.rd_wr) && (instr(11 downto 7) =/= 0)
     val rd_waddr  = rd_wr ? instr(11 downto 7) | B"5'd0"
 
     val rd_wdata = B(0, 32 bits)
@@ -217,6 +216,9 @@ class Execute(config: MR1Config) extends Component {
             rd_wdata := B(shift.rd_wdata)
         }
     }
+
+    io.e2d.pc_jump_valid := io.d2e.valid && jump.pc_jump_valid
+    io.e2d.pc_jump       := jump.pc_jump
 
     val formal = if (config.hasFormal) new Area {
 
@@ -239,6 +241,9 @@ class Execute(config: MR1Config) extends Component {
 
         when(io.e2d.pc_jump_valid){
             io.rvfi.pc_wdata  := B(io.e2d.pc_jump)
+        }
+        .otherwise{
+            io.rvfi.pc_wdata  := B(U(io.d2e.rvfi.pc_rdata) + 4)
         }
 
         when(io.e2d.pc_jump_valid && io.e2d.pc_jump(1 downto 0) =/= "00"){

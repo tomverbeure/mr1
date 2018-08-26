@@ -7,10 +7,13 @@ import spinal.core._
 case class Fetch2Decode(config: MR1Config) extends Bundle {
 
     val valid               = Bool
+    val pc                  = UInt(32 bits)
     val instr               = Bits(32 bits)
 
     def init() : Fetch2Decode = {
         valid init(False)
+        pc    init(0)
+        instr init(0)
         this
     }
 }
@@ -136,7 +139,7 @@ class Fetch(config: MR1Config) extends Component {
         }
     }
 
-    val instr_r = RegNextWhen(instr, io.instr_rsp.valid)
+    val instr_r = RegNextWhen(instr, io.instr_rsp.valid) init(0)
 
     val send_instr_r = Reg(Bool) init (False)
 
@@ -148,15 +151,18 @@ class Fetch(config: MR1Config) extends Component {
 
     when(pc.send_instr){
         f2d.valid := True
+        f2d.pc    := pc.real_pc
         f2d.instr := instr
     }
     .elsewhen(send_instr_r && !io.d2f.stall){
         f2d.valid := True
+        f2d.pc    := pc.real_pc
         f2d.instr := B(instr_r)
     }
-    .otherwise{
+    .elsewhen(!io.d2f.stall){
         f2d.valid := False
-        f2d.instr := B(instr_r)
+        f2d.pc    := U("32'd0")         // FIXME: replace with pc.real_pc later
+        f2d.instr := B("32'd0")         // FIXME: replace with instr later
     }
 
     io.f2d := f2d

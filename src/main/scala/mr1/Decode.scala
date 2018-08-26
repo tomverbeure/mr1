@@ -191,48 +191,17 @@ class Decode(config: MR1Config) extends Component {
         }
     }
 
-    val pc = new Area {
-        val pc     = Reg(UInt(32 bits)) init(0)
-        val pc_nxt = UInt(32 bits)
-
-        val wait_for_pc_jump = Reg(Bool) init(False)
-        val pc_jump_stall = Bool
-
-        pc_jump_stall := wait_for_pc_jump
-        pc_nxt := pc + 4
-
-        when(io.f2d.valid && !io.e2d.stall){
-
-            when(!wait_for_pc_jump){
-                switch(decode.decoded_instr.itype){
-                    is(InstrType.B, InstrType.JAL, InstrType.JALR){
-                        pc_jump_stall := True
-                    }
-                    default{
-                        pc_jump_stall := False
-                        pc_nxt := pc + 4
-                    }
-                }
-            }.elsewhen(io.e2d.pc_jump_valid){
-                pc_jump_stall := False
-                pc_nxt := pc + io.e2d.pc_jump
-            }
-            pc := pc_nxt
-        }
-
-        wait_for_pc_jump := pc_jump_stall
-    }
-
     val outputStage = new Area {
         val d2e_valid_nxt = io.f2d.valid && !io.e2d.stall
 
         io.d2e.valid         := RegNext(d2e_valid_nxt).setName("d2e_valid")
-        io.d2e.pc            := RegNext(pc.pc).setName("d2e_pc")
+        io.d2e.pc            := RegNext(io.f2d.pc).setName("d2e_pc")
         io.d2e.decoded_instr := RegNextWhen(decode.decoded_instr, d2e_valid_nxt).setName("d2e_decoded_instr")
         io.d2e.instr         := RegNextWhen(decode.instr, d2e_valid_nxt).setName("d2e_instr")
     }
 
-    io.d2f.stall := pc.pc_jump_stall || io.e2d.stall
+    //io.d2f.stall := pc.pc_jump_stall || io.e2d.stall
+    io.d2f.stall := io.e2d.stall
 
     io.d2f.pc_jump_valid <> io.e2d.pc_jump_valid
     io.d2f.pc_jump       <> io.e2d.pc_jump
@@ -277,8 +246,8 @@ class Decode(config: MR1Config) extends Component {
         rvfi.rs2_rdata  := 0
         rvfi.rd_addr    := rd_valid ?  decode.rd | 0
         rvfi.rd_wdata   := 0
-        rvfi.pc_rdata   := B(pc.pc)
-        rvfi.pc_wdata   := B(pc.pc_nxt)
+        rvfi.pc_rdata   := B(io.f2d.pc)
+        rvfi.pc_wdata   := 0
         rvfi.mem_addr   := 0
         rvfi.mem_rmask  := 0
         rvfi.mem_wmask  := 0

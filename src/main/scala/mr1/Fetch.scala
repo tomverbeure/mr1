@@ -68,7 +68,7 @@ class Fetch(config: MR1Config) extends Component {
 
         switch(cur_state){
             is(PcState.Idle){
-                when (!fetch_halt){
+                when (!fetch_halt && !io.d2f.stall){
                     io.instr_req.valid := True
                     io.instr_req.addr  := B(real_pc)
 
@@ -97,7 +97,8 @@ class Fetch(config: MR1Config) extends Component {
                     when(instr_is_jump){
                         cur_state := PcState.WaitJumpDone
                     }
-                    .elsewhen(fetch_halt){
+                    .elsewhen(fetch_halt || io.d2f.stall){
+                        real_pc   := real_pc_incr
                         cur_state := PcState.Idle
                     }
                     .otherwise{

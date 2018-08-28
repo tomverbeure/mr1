@@ -23,7 +23,10 @@ class Execute(config: MR1Config) extends Component {
         val rvfi        = if (config.hasFormal) out(RVFI(config)) else null
     }
 
-    io.e2d.stall := False
+    val stall = Reg(Bool) init(False)
+    stall := !stall
+
+    io.e2d.stall := stall
 
     val iformat = InstrFormat()
     val itype   = InstrType()
@@ -256,6 +259,10 @@ class Execute(config: MR1Config) extends Component {
         val rvfi = io.d2e.rvfi
 
         io.rvfi := rvfi
+
+        when(True){
+            io.rvfi.valid := io.d2e.valid && !stall
+        }
 
         when(io.r2e.rs1_data =/= 0){
             io.rvfi.rs1_rdata := io.r2e.rs1_data

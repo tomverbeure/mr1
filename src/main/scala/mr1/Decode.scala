@@ -108,7 +108,7 @@ class Decode(config: MR1Config) extends Component {
                 }
             }
             is(Opcodes.L){
-                when(funct3 =/= B"010" && funct3 =/= B"011" && funct3 =/= B"110" && funct3 =/= B"111") {
+                when(funct3 =/= B"011" && funct3 =/= B"110" && funct3 =/= B"111") {
                     decoded_instr.itype     := InstrType.L
                     decoded_instr.iformat   := InstrFormat.I
                 }

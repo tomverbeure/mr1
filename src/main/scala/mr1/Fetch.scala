@@ -31,7 +31,7 @@ class Fetch(config: MR1Config) extends Component {
         val instr_req       = InstrReqIntfc(config)
         val instr_rsp       = InstrRspIntfc(config)
 
-        val f2d             =  out(Fetch2Decode(config))
+        val f2d             =  out(Reg(Fetch2Decode(config)))
         val d2f             =  in(Decode2Fetch(config))
     }
 
@@ -146,25 +146,30 @@ class Fetch(config: MR1Config) extends Component {
                     (!io.d2f.stall       ? False  |
                                            send_instr_r))
 
-    val f2d = Reg(Fetch2Decode(config)) init()
+
+    val f2d_nxt = Fetch2Decode(config)
+
+    f2d_nxt := io.f2d
 
     when(pc.send_instr){
-        f2d.valid := True
-        f2d.pc    := pc.real_pc
-        f2d.instr := instr
+        f2d_nxt.valid := True
+        f2d_nxt.pc    := pc.real_pc
+        f2d_nxt.instr := instr
     }
     .elsewhen(send_instr_r && !io.d2f.stall){
-        f2d.valid := True
-        f2d.pc    := pc.real_pc
-        f2d.instr := B(instr_r)
+        f2d_nxt.valid := True
+        f2d_nxt.pc    := pc.real_pc
+        f2d_nxt.instr := B(instr_r)
     }
     .elsewhen(!io.d2f.stall){
-        f2d.valid := False
-        f2d.pc    := U("32'd0")         // FIXME: replace with pc.real_pc later
-        f2d.instr := B("32'd0")         // FIXME: replace with instr later
+        f2d_nxt.valid := False
+        f2d_nxt.pc    := U("32'd0")         // FIXME: replace with pc.real_pc later
+        f2d_nxt.instr := B("32'd0")         // FIXME: replace with instr later
     }
 
-    io.f2d := f2d
+    val fetch_active = f2d_nxt.valid && !io.d2f.stall
+
+    io.f2d := f2d_nxt
 }
 
 

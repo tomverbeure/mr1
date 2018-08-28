@@ -28,10 +28,10 @@ case class Decode2Execute(config: MR1Config) extends Bundle {
 case class Decode2RegFile(config: MR1Config) extends Bundle {
 
     val rs1_rd      = Bool
-    val rs1_rd_addr = UInt(5 bits) 
+    val rs1_rd_addr = UInt(5 bits)
 
     val rs2_rd      = Bool
-    val rs2_rd_addr = UInt(5 bits) 
+    val rs2_rd_addr = UInt(5 bits)
 }
 
 case class Execute2Decode(config: MR1Config) extends Bundle {
@@ -53,7 +53,7 @@ class Decode(config: MR1Config) extends Component {
         val f2d         = in(Fetch2Decode(config))
         val d2f         = out(Decode2Fetch(config))
 
-        val d2e         = out(Decode2Execute(config))
+        val d2e         = out(Reg(Decode2Execute(config)))
         val e2d         = in(Execute2Decode(config))
 
         val d2r         = out(Decode2RegFile(config))
@@ -191,16 +191,8 @@ class Decode(config: MR1Config) extends Component {
         }
     }
 
-    val outputStage = new Area {
-        val d2e_valid_nxt = io.f2d.valid && !io.e2d.stall
+    val decode_active = io.f2d.valid && !io.e2d.stall
 
-        io.d2e.valid         := RegNext(d2e_valid_nxt).setName("d2e_valid")
-        io.d2e.pc            := RegNext(io.f2d.pc).setName("d2e_pc")
-        io.d2e.decoded_instr := RegNextWhen(decode.decoded_instr, d2e_valid_nxt).setName("d2e_decoded_instr")
-        io.d2e.instr         := RegNextWhen(decode.instr, d2e_valid_nxt).setName("d2e_instr")
-    }
-
-    //io.d2f.stall := pc.pc_jump_stall || io.e2d.stall
     io.d2f.stall := io.e2d.stall
 
     io.d2f.pc_jump_valid <> io.e2d.pc_jump_valid
@@ -230,11 +222,11 @@ class Decode(config: MR1Config) extends Component {
         val rvfi = RVFI(config)
 
         val order = Reg(UInt(64 bits)) init(0)
-        when(io.f2d.valid){
+        when(decode_active){
             order := order + 1
         }
 
-        rvfi.valid      := outputStage.d2e_valid_nxt
+        rvfi.valid      := io.f2d.valid
         rvfi.order      := order
         rvfi.insn       := io.f2d.instr
         rvfi.trap       := (decode.decoded_instr.iformat === InstrFormat.Undef)
@@ -253,8 +245,20 @@ class Decode(config: MR1Config) extends Component {
         rvfi.mem_wmask  := 0
         rvfi.mem_rdata  := 0
         rvfi.mem_wdata  := 0
+    } else null
 
-        io.d2e.rvfi := RegNext(rvfi).setName("d2e_rvfi") init()
+    val d2e = new Area {
+        val d2e_nxt     = Decode2Execute(config).setName("d2e_nxt")
+
+        d2e_nxt.valid           := io.f2d.valid
+        d2e_nxt.pc              := io.f2d.pc
+        d2e_nxt.decoded_instr   := decode.decoded_instr
+        d2e_nxt.instr           := decode.instr
+
+        if (config.hasFormal)
+            d2e_nxt.rvfi            := formal.rvfi
+
+        io.d2e := d2e_nxt
     }
 
 }

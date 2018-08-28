@@ -98,8 +98,9 @@ case class DataReqIntfc(config: MR1Config) extends Bundle() {
         val ready       = in(Bool)
         val addr        = out(Bits(32 bits))
         val wr          = out(Bool)
-        val wr_mask     = out(Bits(4 bits))
-        val wr_data     = out(Bits(32 bits))
+        val size        = out(Bits(2 bits))
+        val data        = out(Bits(32 bits))
+
 }
 
 case class DataRspIntfc(config: MR1Config) extends Bundle() {

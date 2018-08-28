@@ -108,7 +108,7 @@ class Decode(config: MR1Config) extends Component {
                 }
             }
             is(Opcodes.L){
-                when(funct3 =/= B"010" && funct3 =/= B"011" && funct3 =/= B"110" && funct3 =/= B"111") {
+                when(funct3 =/= B"011" && funct3 =/= B"110" && funct3 =/= B"111") {
                     decoded_instr.itype     := InstrType.L
                     decoded_instr.iformat   := InstrFormat.I
                 }
@@ -192,7 +192,7 @@ class Decode(config: MR1Config) extends Component {
     }
 
     val outputStage = new Area {
-        val d2e_valid_nxt = io.f2d.valid && !io.e2d.stall
+        val d2e_valid_nxt = io.f2d.valid
 
         io.d2e.valid         := RegNext(d2e_valid_nxt).setName("d2e_valid")
         io.d2e.pc            := RegNext(io.f2d.pc).setName("d2e_pc")
@@ -200,7 +200,6 @@ class Decode(config: MR1Config) extends Component {
         io.d2e.instr         := RegNextWhen(decode.instr, d2e_valid_nxt).setName("d2e_instr")
     }
 
-    //io.d2f.stall := pc.pc_jump_stall || io.e2d.stall
     io.d2f.stall := io.e2d.stall
 
     io.d2f.pc_jump_valid <> io.e2d.pc_jump_valid
@@ -230,11 +229,11 @@ class Decode(config: MR1Config) extends Component {
         val rvfi = RVFI(config)
 
         val order = Reg(UInt(64 bits)) init(0)
-        when(io.f2d.valid){
+        when(io.f2d.valid && !io.e2d.stall){
             order := order + 1
         }
 
-        rvfi.valid      := outputStage.d2e_valid_nxt
+        rvfi.valid      := outputStage.d2e_valid_nxt && !io.e2d.stall
         rvfi.order      := order
         rvfi.insn       := io.f2d.instr
         rvfi.trap       := (decode.decoded_instr.iformat === InstrFormat.Undef)

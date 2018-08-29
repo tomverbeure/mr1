@@ -31,7 +31,7 @@ class Fetch(config: MR1Config) extends Component {
         val instr_req       = InstrReqIntfc(config)
         val instr_rsp       = InstrRspIntfc(config)
 
-        val f2d             =  out(Reg(Fetch2Decode(config)))
+        val f2d             =  out(Reg(Fetch2Decode(config)) init)
         val d2f             =  in(Decode2Fetch(config))
     }
 

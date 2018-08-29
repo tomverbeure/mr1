@@ -20,6 +20,7 @@ case class Decode2Execute(config: MR1Config) extends Bundle {
 
     def init() : Decode2Execute = {
         valid init(False)
+        if (config.hasFormal) rvfi init()
         this
     }
 
@@ -53,7 +54,7 @@ class Decode(config: MR1Config) extends Component {
         val f2d         = in(Fetch2Decode(config))
         val d2f         = out(Decode2Fetch(config))
 
-        val d2e         = out(Reg(Decode2Execute(config)))
+        val d2e         = out(Reg(Decode2Execute(config)) init)
         val e2d         = in(Execute2Decode(config))
 
         val d2r         = out(Decode2RegFile(config))
@@ -191,7 +192,10 @@ class Decode(config: MR1Config) extends Component {
         }
     }
 
-    val decode_active = io.f2d.valid && !io.e2d.stall
+    val e2d_stall   = io.e2d.stall
+    val e2d_stall_d = RegNext(e2d_stall)
+
+    val decode_active = io.f2d.valid && !e2d_stall
 
     io.d2f.stall := io.e2d.stall
 
@@ -258,7 +262,9 @@ class Decode(config: MR1Config) extends Component {
         if (config.hasFormal)
             d2e_nxt.rvfi            := formal.rvfi
 
-        io.d2e := d2e_nxt
+        when (decode_active || (!e2d_stall && e2d_stall_d)){
+            io.d2e := d2e_nxt
+        }
     }
 
 }

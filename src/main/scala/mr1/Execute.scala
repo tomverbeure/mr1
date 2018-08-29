@@ -262,6 +262,9 @@ class Execute(config: MR1Config) extends Component {
         io.data_req.size    := size
         io.data_req.data    := rs2
 
+        val rsp_data_shift_adj = Bits(32 bits)
+        rsp_data_shift_adj := io.data_rsp.data >> (U(lsu_addr(1 downto 0)) * 8)
+
         switch(cur_state){
             is(LsuState.Idle){
                 when(io.d2e.valid && (itype === InstrType.L || itype === InstrType.S)){
@@ -286,7 +289,12 @@ class Execute(config: MR1Config) extends Component {
                 when(io.data_rsp.valid){
                     lsu_stall := False
                     rd_wr     := True
-                    rd_wdata  := io.data_rsp.data
+                    rd_wdata  := ( (funct3 === B"000") ? B(S(rsp_data_shift_adj( 7 downto 0)).resize(32)) |
+                                 ( (funct3 === B"100") ? B(U(rsp_data_shift_adj( 7 downto 0)).resize(32)) |
+                                 ( (funct3 === B"001") ? B(S(rsp_data_shift_adj(15 downto 0)).resize(32)) |
+                                 ( (funct3 === B"101") ? B(U(rsp_data_shift_adj(15 downto 0)).resize(32)) |
+                                                             io.data_rsp.data))))
+
                     cur_state := LsuState.Idle
                 }
             }
@@ -354,7 +362,7 @@ class Execute(config: MR1Config) extends Component {
             io.rvfi.mem_addr  := io.data_req.addr
             io.rvfi.mem_rmask := ((io.data_req.size === B"00") ? B"0001" |
                                  ((io.data_req.size === B"01") ? B"0011" |
-                                                                 B"1111")) |<< U(io.data_req.addr(1 downto 0))
+                                                                 B"1111")) |<< U(lsu.lsu_addr(1 downto 0))
             io.rvfi.mem_rdata := io.data_rsp.data
 
             io.rvfi.trap      := (io.data_req.size === B"01" && lsu.lsu_addr(0)) |

@@ -254,8 +254,10 @@ class Execute(config: MR1Config) extends Component {
             }
         }
 
+        val lsu_addr = B(S(rs1) + S(i_imm_11_0).resize(32))
+
         io.data_req.valid   := False
-        io.data_req.addr    := B(S(rs1) + S(i_imm_11_0).resize(32))
+        io.data_req.addr    := lsu_addr(31 downto 2) ## "00"
         io.data_req.wr      := False
         io.data_req.size    := size
         io.data_req.data    := rs2
@@ -310,7 +312,7 @@ class Execute(config: MR1Config) extends Component {
     val random_stall = Reg(Bool) init(False)
     random_stall := !random_stall
 
-    io.e2d.stall         := lsu.lsu_stall 
+    io.e2d.stall         := lsu.lsu_stall
     io.e2d.pc_jump_valid := io.d2e.valid && jump.pc_jump_valid
     io.e2d.pc_jump       := jump.pc_jump
 
@@ -348,13 +350,16 @@ class Execute(config: MR1Config) extends Component {
             io.rvfi.trap := True
         }
 
-        when(io.data_req.valid && io.data_req.ready && !io.data_req.wr){
+        when(io.data_rsp.valid){
             io.rvfi.mem_addr  := io.data_req.addr
             io.rvfi.mem_rmask := ((io.data_req.size === B"00") ? B"0001" |
-                                 ((io.data_req.size === B"01") ? B"0011" | B"1111")) |<< U(io.data_req.addr(1 downto 0))
-        }
-        when(io.data_rsp.valid){
+                                 ((io.data_req.size === B"01") ? B"0011" |
+                                                                 B"1111")) |<< U(io.data_req.addr(1 downto 0))
             io.rvfi.mem_rdata := io.data_rsp.data
+
+            io.rvfi.trap      := (io.data_req.size === B"01" && lsu.lsu_addr(0)) |
+                                 (io.data_req.size === B"10" && lsu.lsu_addr(1 downto 0) =/= "00")
+
         }
 
     } else null

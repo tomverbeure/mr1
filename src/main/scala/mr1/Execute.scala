@@ -40,10 +40,11 @@ class Execute(config: MR1Config) extends Component {
     rs1 := io.r2e.rs1_data
     rs2 := io.r2e.rs2_data
 
-    val i_imm_11_0  = instr(31 downto 20)
+    val i_imm_11_0  = S(instr(31 downto 20))
+    val s_imm_11_0  = S(instr(31 downto 25) ## instr(11 downto 7))
     val b_imm_12_1  = S(instr(31) ## instr(7) ## instr(30 downto 25) ## instr(11 downto 8))
-    val j_imm_20_1  = S(instr(31) ## instr(19 downto 12) ## instr(20) ## instr(30 downto 21))
     val u_imm_31_12 = U(instr(31 downto 12))
+    val j_imm_20_1  = S(instr(31) ## instr(19 downto 12) ## instr(20) ## instr(30 downto 21))
 
 
     val alu = new Area {
@@ -85,27 +86,27 @@ class Execute(config: MR1Config) extends Component {
                 switch(funct3){
                     is(B"000"){         // ADDI
                         rd_wr    := True
-                        rd_wdata := U(S(rs1) + S(i_imm_11_0).resize(32))
+                        rd_wdata := U(S(rs1) + i_imm_11_0.resize(32))
                     }
                     is(B"010"){         // SLT
                         rd_wr    := True
-                        rd_wdata := U(S(rs1) < S(i_imm_11_0).resize(32)).resize(32)
+                        rd_wdata := U(S(rs1) < i_imm_11_0.resize(32)).resize(32)
                     }
                     is(B"011"){         // SLTIU
                         rd_wr    := True
-                        rd_wdata := U(U(rs1) < U(S(i_imm_11_0).resize(32))).resize(32)
+                        rd_wdata := U(U(rs1) < U(i_imm_11_0.resize(32))).resize(32)
                     }
                     is(B"100"){         // XORI
                         rd_wr    := True
-                        rd_wdata := U(S(rs1) ^ S(i_imm_11_0).resize(32))
+                        rd_wdata := U(S(rs1) ^ i_imm_11_0.resize(32))
                     }
                     is(B"110"){         // ORI
                         rd_wr    := True
-                        rd_wdata := U(S(rs1) | S(i_imm_11_0).resize(32))
+                        rd_wdata := U(S(rs1) | i_imm_11_0.resize(32))
                     }
                     is(B"111"){         // ANDI
                         rd_wr    := True
-                        rd_wdata := U(S(rs1) & S(i_imm_11_0).resize(32))
+                        rd_wdata := U(S(rs1) & i_imm_11_0.resize(32))
                     }
                 }
             }
@@ -209,7 +210,7 @@ class Execute(config: MR1Config) extends Component {
             }
             is(InstrType.JALR){
                 pc_jump_valid := True
-                pc_jump       := U(S(rs1) + S(i_imm_11_0))(31 downto 1) @@ "0"
+                pc_jump       := U(S(rs1) + i_imm_11_0)(31 downto 1) @@ "0"
 
                 rd_wr    := True
                 rd_wdata := pc +4
@@ -254,7 +255,7 @@ class Execute(config: MR1Config) extends Component {
             }
         }
 
-        val lsu_addr = B(S(rs1) + S(i_imm_11_0).resize(32))
+        val lsu_addr = B(S(rs1) + ((itype === InstrType.L) ? i_imm_11_0 | s_imm_11_0).resize(32))
 
         io.data_req.valid   := False
         io.data_req.addr    := lsu_addr(31 downto 2) ## "00"
@@ -364,6 +365,21 @@ class Execute(config: MR1Config) extends Component {
                                  ((io.data_req.size === B"01") ? B"0011" |
                                                                  B"1111")) |<< U(lsu.lsu_addr(1 downto 0))
             io.rvfi.mem_rdata := io.data_rsp.data
+
+            io.rvfi.trap      := (io.data_req.size === B"01" && lsu.lsu_addr(0)) |
+                                 (io.data_req.size === B"10" && lsu.lsu_addr(1 downto 0) =/= "00")
+
+        }
+
+        when(itype === InstrType.S && io.data_req.ready){
+            io.rvfi.mem_addr  := io.data_req.addr
+            io.rvfi.mem_wmask := ((io.data_req.size === B"00") ? B"0001" |
+                                 ((io.data_req.size === B"01") ? B"0011" |
+                                                                 B"1111")) |<< U(lsu.lsu_addr(1 downto 0))
+
+            io.rvfi.mem_wdata := ((io.data_req.size === B"00") ? io.data_req.data(7 downto 0).resize(32)  |
+                                 ((io.data_req.size === B"01") ? io.data_req.data(15 downto 0).resize(32) |
+                                                                 io.data_req.data)) |<< (U(lsu.lsu_addr(1 downto 0)) * 8)
 
             io.rvfi.trap      := (io.data_req.size === B"01" && lsu.lsu_addr(0)) |
                                  (io.data_req.size === B"10" && lsu.lsu_addr(1 downto 0) =/= "00")

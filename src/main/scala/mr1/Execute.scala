@@ -358,7 +358,7 @@ class Execute(config: MR1Config) extends Component {
             io.rvfi.trap := True
         }
 
-        when(io.data_rsp.valid){
+        when(itype === InstrType.L && io.data_rsp.valid){
             io.rvfi.mem_addr  := io.data_req.addr
             io.rvfi.mem_rmask := ((io.data_req.size === B"00") ? B"0001" |
                                  ((io.data_req.size === B"01") ? B"0011" |

@@ -230,7 +230,7 @@ class Decode(config: MR1Config) extends Component {
             order := order + 1
         }
 
-        rvfi.valid      := io.f2d.valid
+        rvfi.valid      := decode_active
         rvfi.order      := order
         rvfi.insn       := io.f2d.instr
         rvfi.trap       := (decode.decoded_instr.iformat === InstrFormat.Undef)

@@ -64,13 +64,13 @@ class Fetch(config: MR1Config) extends Component {
         val cur_state = Reg(PcState()) init(PcState.Idle)
 
         io.instr_req.valid := False
-        io.instr_req.addr  := B(real_pc)
+        io.instr_req.addr  := real_pc
 
         switch(cur_state){
             is(PcState.Idle){
                 when (!fetch_halt && !io.d2f.stall){
                     io.instr_req.valid := True
-                    io.instr_req.addr  := B(real_pc)
+                    io.instr_req.addr  := real_pc
 
                     when(io.instr_req.ready){
                         cur_state := PcState.WaitRsp
@@ -82,7 +82,7 @@ class Fetch(config: MR1Config) extends Component {
             }
             is(PcState.WaitReqReady){
                 io.instr_req.valid := True
-                io.instr_req.addr  := B(real_pc)
+                io.instr_req.addr  := real_pc
 
                 when(io.instr_req.ready){
                     cur_state := PcState.WaitRsp
@@ -103,7 +103,7 @@ class Fetch(config: MR1Config) extends Component {
                     }
                     .otherwise{
                         io.instr_req.valid := True
-                        io.instr_req.addr  := B(real_pc_incr)
+                        io.instr_req.addr  := real_pc_incr
                         real_pc := real_pc_incr
 
                         when(io.instr_req.ready){
@@ -124,7 +124,7 @@ class Fetch(config: MR1Config) extends Component {
                     }
                     .otherwise{
                         io.instr_req.valid := True
-                        io.instr_req.addr  := B(io.d2f.pc_jump)
+                        io.instr_req.addr  := io.d2f.pc_jump
 
                         when(io.instr_req.ready){
                             cur_state := PcState.WaitRsp

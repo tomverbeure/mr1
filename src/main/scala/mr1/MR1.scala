@@ -9,7 +9,8 @@ case class MR1Config(
                 supportCsr      : Boolean = true,
                 supportFormal   : Boolean = true,
                 supportFence    : Boolean = false,
-                supportAsyncReg  :Boolean = false
+                supportAsyncReg : Boolean = false,
+                supportRegInit  : Boolean = false
                 ) {
 
     def hasMul      = supportMul
@@ -18,6 +19,7 @@ case class MR1Config(
     def hasFence    = supportFence
 
     def hasAsyncReg = supportAsyncReg
+    def hasRegInit  = supportRegInit
 
     def hasFormal   = supportFormal
 }
@@ -30,22 +32,30 @@ case class RVFI(config: MR1Config) extends Bundle {
     val trap        = Bool
     val halt        = Bool
     val intr        = Bool
-    val rs1_addr    = Bits(5 bits)
-    val rs2_addr    = Bits(5 bits)
+    val rs1_addr    = UInt(5 bits)
+    val rs2_addr    = UInt(5 bits)
     val rs1_rdata   = Bits(32 bits)
     val rs2_rdata   = Bits(32 bits)
-    val rd_addr     = Bits(5 bits)
+    val rd_addr     = UInt(5 bits)
     val rd_wdata    = Bits(32 bits)
-    val pc_rdata    = Bits(32 bits)
-    val pc_wdata    = Bits(32 bits)
-    val mem_addr    = Bits(32 bits)
+    val pc_rdata    = UInt(32 bits)
+    val pc_wdata    = UInt(32 bits)
+    val mem_addr    = UInt(32 bits)
     val mem_rmask   = Bits(4 bits)
     val mem_wmask   = Bits(4 bits)
     val mem_rdata   = Bits(32 bits)
     val mem_wdata   = Bits(32 bits)
 
     def init() : RVFI = {
-        valid init(False)
+        valid     init(False)
+        rd_addr   init(0)
+        rd_wdata  init(0)
+        mem_addr  init(0)
+        mem_rmask init(0)
+        mem_rdata init(0)
+        mem_wmask init(0)
+        mem_wdata init(0)
+
         this
     }
 }
@@ -61,6 +71,7 @@ object InstrFormat extends SpinalEnum {
 }
 
 object InstrType extends SpinalEnum {
+    val Undef   = newElement()
     val LUI     = newElement()
     val AUIPC   = newElement()
     val JAL     = newElement()
@@ -75,15 +86,14 @@ object InstrType extends SpinalEnum {
     val FENCE   = newElement()
     val E       = newElement()
     val CSR     = newElement()
-    val MUL     = newElement()
-    val DIV     = newElement()
+    val MULDIV  = newElement()
 }
 
 case class InstrReqIntfc(config: MR1Config) extends Bundle() {
 
         val valid       = out(Bool)
         val ready       = in(Bool)
-        val addr        = out(Bits(32 bits))
+        val addr        = out(UInt(32 bits))
 }
 
 case class InstrRspIntfc(config: MR1Config) extends Bundle() {
@@ -96,7 +106,7 @@ case class DataReqIntfc(config: MR1Config) extends Bundle() {
 
         val valid       = out(Bool)
         val ready       = in(Bool)
-        val addr        = out(Bits(32 bits))
+        val addr        = out(UInt(32 bits))
         val wr          = out(Bool)
         val size        = out(Bits(2 bits))
         val data        = out(Bits(32 bits))
@@ -138,12 +148,11 @@ class MR1(config: MR1Config) extends Component {
     io.data_rsp <> execute.io.data_rsp
 
     val reg_file = new RegFile(config)
-    decode.io.d2r   <> reg_file.io.d2r
-    reg_file.io.r2e <> execute.io.r2e
 
-    reg_file.io.rd_wr      := False
-    reg_file.io.rd_wr_addr := 0
-    reg_file.io.rd_wr_data := 0
+    decode.io.rd2r  <> reg_file.io.rd2r
+    decode.io.r2rd  <> reg_file.io.r2rd
+    reg_file.io.r2rr <> execute.io.r2rr
+    reg_file.io.w2r <> execute.io.w2r
 
     if (config.hasFormal)
         io.rvfi <> execute.io.rvfi

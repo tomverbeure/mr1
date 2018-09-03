@@ -138,7 +138,8 @@ class Fetch(config: MR1Config) extends Component {
         }
     }
 
-    val instr_r = RegNextWhen(instr, io.instr_rsp.valid) init(0)
+    val instr_r = RegNextWhen(instr,      io.instr_rsp.valid) init(0)
+    val pc_r    = RegNextWhen(pc.real_pc, io.instr_rsp.valid) init(0)
 
     val send_instr_r = Reg(Bool) init (False)
 
@@ -158,7 +159,7 @@ class Fetch(config: MR1Config) extends Component {
     }
     .elsewhen(send_instr_r && !io.d2f.stall){
         f2d_nxt.valid := True
-        f2d_nxt.pc    := pc.real_pc
+        f2d_nxt.pc    := pc_r
         f2d_nxt.instr := B(instr_r)
     }
     .elsewhen(!io.d2f.stall){

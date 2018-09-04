@@ -34,3 +34,11 @@ Remove Formal IOs:
 * 51 MHZ
 * IOW: everything RVFI has been optimized away
 
+Simply FF at output of reg file RAMS (non-functional):
+
+* Clock increases from 50MHz to 66MHz.
+* Critical path moves from regfile RAM output to regfile RAM input to regfile output FF to regfile RAM input.
+* Paths are all very close to eachother: adder, barrel shifter, ...
+* Adds 64 FFs, for a total of 299. As usual, Quartus isn't smart enough to merge these FFs into the RAM itself. In this case, this might be 
+  a benefit, because a core logic to core logic path may be faster than RAM to core logic.
+

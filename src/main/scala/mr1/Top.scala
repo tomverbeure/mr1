@@ -3,7 +3,7 @@ package mr1
 
 import spinal.core._
 
-class Top(config: MR1Config) extends Component {
+class TopMR1(config: MR1Config) extends Component {
 
     val io = new Bundle {
         val osc_clk = in(Bool)
@@ -96,9 +96,44 @@ class Top(config: MR1Config) extends Component {
     }
 }
 
+/*
+class TopPicoRV32(config: MR1Config) extends Component {
+
+    val io = new Bundle {
+        val osc_clk = in(Bool)
+
+        val led1    = out(Bool)
+        val led2    = out(Bool)
+        val led3    = out(Bool)
+
+        val switch_ = in(Bool)
+    }
+
+    noIoPrefix()
+
+    val coreClockDomain = ClockDomain.internal(
+        name = "core",
+        config = ClockDomainConfig(
+                    clockEdge = RISING,
+                    resetKind = SYNC,
+                    resetActiveLevel = LOW),
+        frequency = FixedFrequency(50 MHz)
+    )
+
+    val core = new ClockingArea(coreClockDomain) {
+
+        coreClockDomain.clock := io.osc_clk
+        coreClockDomain.reset := RegNext(True)
+
+
+
+    }
+}
+*/
+
 object TopVerilog {
     def main(args: Array[String]) {
-        SpinalVerilog(new Top(config = MR1Config(supportFormal = false)))
+        SpinalVerilog(new TopMR1(config = MR1Config(supportFormal = false)))
     }
 }
 

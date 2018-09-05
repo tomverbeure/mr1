@@ -5,27 +5,27 @@ import spinal.core._
 
 
 class picorv32(
-        enableCounters      : Boolean = true,
-        enableCounter64     : Boolean = true,
-        enableRegs1631      : Boolean = true,
-        enableRegsDualPort  : Boolean = true,
-        latchedMemRData     : Boolean = false,
-        twoStageShift       : Boolean = true,
-        barrelShifter       : Boolean = false,
-        twoCycleCompare     : Boolean = false,
-        twoCycleAlu         : Boolean = false,
-        compressedIsa       : Boolean = false,
-        catchMisalign       : Boolean = true,
-        catchIllinsn        : Boolean = true,
-        enablePcpi          : Boolean = false,
-        enableMul           : Boolean = false,
-        enableFastMul       : Boolean = false,
-        enableDiv           : Boolean = false,
-        enableIreq          : Boolean = false,
-        enableIrqQregs      : Boolean = true,
-        enableIrqTimer      : Boolean = true,
-        enableTrace         : Boolean = false,
-        enableInitZero      : Boolean = false,
+        enableCounters      : Int = 1,
+        enableCounter64     : Int = 1,
+        enableRegs1631      : Int = 1,
+        enableRegsDualPort  : Int = 1,
+        latchedMemRData     : Int = 0,
+        twoStageShift       : Int = 1,
+        barrelShifter       : Int = 0,
+        twoCycleCompare     : Int = 0,
+        twoCycleAlu         : Int = 0,
+        compressedIsa       : Int = 0,
+        catchMisalign       : Int = 1,
+        catchIllinsn        : Int = 1,
+        enablePcpi          : Int = 0,
+        enableMul           : Int = 0,
+        enableFastMul       : Int = 0,
+        enableDiv           : Int = 0,
+        enableIreq          : Int = 0,
+        enableIrqQregs      : Int = 1,
+        enableIrqTimer      : Int = 1,
+        enableTrace         : Int = 0,
+        enableInitZero      : Int = 0,
     
         maskedIrq           : Int   = 0x00000000,
         latchedIrq          : Int   = 0xffffffff,
@@ -88,8 +88,8 @@ class picorv32(
         // Pico Co-Processor Interface (PCPI)
         val pcpi_valid      = out(Bool)
         val pcpi_insn       = out(Bits(32 bits))
-        val pcpi_pcpi_rs1   = out(Bits(32 bits))
-        val pcpi_pcpi_rs2   = out(Bits(32 bits))
+        val pcpi_rs1        = out(Bits(32 bits))
+        val pcpi_rs2        = out(Bits(32 bits))
         val pcpi_wr         = in(Bool)
         val pcpi_rd         = in(Bits(32 bits))
         val pcpi_wait       = in(Bool)
@@ -104,7 +104,7 @@ class picorv32(
         val trace_data      = out(Bits(36 bits))
     }
 
-    mapCurrentClockDomain(io.clk)
+    mapCurrentClockDomain(io.clk, io.resetn)
     noIoPrefix()
 }
 

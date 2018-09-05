@@ -75,7 +75,7 @@ No multiplier, but barrelshifter refactored:
 
 * Area: 
 
-    Logic elements: 1690 (from 2137) vs 1582
+    Logic elements: 1688 (from 2137) vs 1582
 
     Registers: 242 vs 495
 

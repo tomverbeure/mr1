@@ -17,19 +17,36 @@ class TopMR1(config: MR1Config) extends Component {
 
     noIoPrefix()
 
-    val coreClockDomain = ClockDomain.internal(
-        name = "core",
+    val resetCtrlClockDomain = ClockDomain(
+        clock = io.osc_clk,
+        frequency = FixedFrequency(50 MHz),
         config = ClockDomainConfig(
-                    clockEdge = RISING,
-                    resetKind = SYNC,
-                    resetActiveLevel = LOW),
-        frequency = FixedFrequency(50 MHz)
+                    resetKind = BOOT
+        )
+    )
+
+    val resetCtrl = new ClockingArea(resetCtrlClockDomain) {
+        val reset_unbuffered_ = True
+
+        val reset_cntr = Reg(UInt(5 bits)) init(0)
+        when(reset_cntr =/= U(reset_cntr.range -> true)){
+            reset_cntr := reset_cntr + 1
+            reset_unbuffered_ := False
+        }
+
+        val reset_ = RegNext(reset_unbuffered_)
+    }
+
+    val coreClockDomain = ClockDomain(
+        clock = io.osc_clk,
+        reset = resetCtrl.reset_,
+        config = ClockDomainConfig(
+            resetKind = SYNC,
+            resetActiveLevel = LOW
+        )
     )
 
     val core = new ClockingArea(coreClockDomain) {
-
-        coreClockDomain.clock := io.osc_clk
-        coreClockDomain.reset := RegNext(True)
 
         val mr1 = new MR1(config)
 
@@ -88,10 +105,11 @@ class TopMR1(config: MR1Config) extends Component {
             mr1.io.data_rsp.data     := cpu_ram.io.q_b
         }
 
+        val update_leds = mr1.io.data_req.valid && mr1.io.data_req.wr && mr1.io.data_req.addr(19)
 
-        io.led1 := RegNextWhen(mr1.io.data_req.data(0), mr1.io.data_req.valid && mr1.io.data_req.wr && mr1.io.data_req.addr(19)) init(False)
-        io.led2 := RegNextWhen(mr1.io.data_req.data(1), mr1.io.data_req.valid && mr1.io.data_req.wr && mr1.io.data_req.addr(19)) init(False)
-        io.led3 := RegNextWhen(mr1.io.data_req.data(2), mr1.io.data_req.valid && mr1.io.data_req.wr && mr1.io.data_req.addr(19)) init(False)
+        io.led1 := RegNextWhen(mr1.io.data_req.data(0), update_leds) init(False)
+        io.led2 := RegNextWhen(mr1.io.data_req.data(1), update_leds) init(False)
+        io.led3 := RegNextWhen(mr1.io.data_req.data(2), update_leds) init(False)
 
     }
 }
@@ -185,7 +203,6 @@ class TopPicoRV32(config: MR1Config) extends Component {
         cpu_ram.io.wren_a       := False
         cpu_ram.io.data_a       := 0
 
-//        picorv32.io.mem_ready   := RegNext(picorv32.io.mem_la_write || picorv32.io.mem_la_read)
         picorv32.io.mem_ready   := True
 
         cpu_ram.io.address_b    := (U(picorv32.io.mem_la_addr) >> 2).resized

@@ -173,24 +173,33 @@ class Execute(config: MR1Config) extends Component {
     }
 
     val shift = new Area {
-        val rd_wr    = False
-        val rd_wdata = U(0, 32 bits)
-        val shamt    = U(instr(24 downto 20))
+        val rd_wr       = False
+        val rd_wdata    = UInt(32 bits)
+        val shamt       = U(instr(24 downto 20))
+        val shleft      = False
+
+        val op1         = S(B"0" ## rs1)
 
         switch(itype){
             is(InstrType.SHIFT){
                 switch(funct3){
                     is(B"001"){             // SLL
-                        rd_wr    := True
-                        rd_wdata := U(rs1) |<< U(rs2(4 downto 0))
+                        rd_wr   := True
+                        shleft  := True
+                        shamt   := U(rs2(4 downto 0))
+                        op1(32) := False
                     }
                     is(B"101"){
                         when(instr(30)){    // SRA
-                            rd_wr    := True
-                            rd_wdata := U(S(rs1) >> U(rs2(4 downto 0)))
+                            rd_wr   := True
+                            shleft  := False
+                            shamt   := U(rs2(4 downto 0))
+                            op1(32) := rs1(31)
                         }.otherwise{        // SRL
-                            rd_wr    := True
-                            rd_wdata := U(rs1) |>> U(rs2(4 downto 0))
+                            rd_wr   := True
+                            shleft  := False
+                            shamt   := U(rs2(4 downto 0))
+                            op1(32) := False
                         }
                     }
                 }
@@ -198,21 +207,26 @@ class Execute(config: MR1Config) extends Component {
             is(InstrType.SHIFT_I){
                 switch(funct3){
                     is(B"001"){             // SLLI
-                        rd_wr    := True
-                        rd_wdata := U(rs1) |<< shamt
+                        rd_wr   := True
+                        shleft  := True
+                        op1(32) := False
                     }
                     is(B"101"){
                         when(instr(30)){    // SRAI
-                            rd_wr    := True
-                            rd_wdata := U(S(rs1) >> shamt)
+                            rd_wr   := True
+                            shleft  := False
+                            op1(32) := rs1(31)
                         }.otherwise{        // SRLI
-                            rd_wr    := True
-                            rd_wdata := U(rs1) |>> shamt
+                            rd_wr   := True
+                            shleft  := False
+                            op1(32) := False
                         }
                     }
                 }
             }
         }
+
+        rd_wdata := U(shleft ? (op1 |<< shamt) | (op1 |>> shamt))(31 downto 0)
     }
 
     val jump = new Area {

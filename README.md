@@ -49,13 +49,17 @@ MR1 vs PicoRV32: RV32I
 * Speed: 50MHz vs 99MHz
 * Area: 
     Logic elements: 2137 vs 1582
+
     Registers: 242 vs 404
+
     Memory bits: 34816 vs 34816
 
 With multiplier but no divide:
 * Speed: 43MHz vs 73MHz
 * Area: 
     Logic elements: 2318 vs 1806
+
     Registers: 242 vs 495
+
     Multipliers: 4x 18x18
 

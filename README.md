@@ -42,3 +42,20 @@ Simply FF at output of reg file RAMS (non-functional):
 * Adds 64 FFs, for a total of 299. As usual, Quartus isn't smart enough to merge these FFs into the RAM itself. In this case, this might be 
   a benefit, because a core logic to core logic path may be faster than RAM to core logic.
 
+
+Initial comparison with equivalent TopMR1 and TopPicoRV32:
+
+MR1 vs PicoRV32: RV32I
+* Speed: 50MHz vs 99MHz
+* Area: 
+    Logic elements: 2137 vs 1582
+    Registers: 242 vs 404
+    Memory bits: 34816 vs 34816
+
+With multiplier but no divide:
+* Speed: 43MHz vs 73MHz
+* Area: 
+    Logic elements: 2318 vs 1806
+    Registers: 242 vs 495
+    Multipliers: 4x 18x18
+

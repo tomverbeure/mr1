@@ -55,6 +55,8 @@ MR1 vs PicoRV32: RV32I
 
     Memory bits: 34816 vs 34816
 
+v1.1:
+
 With multiplier but no divide:
 * Speed: 43MHz vs 73MHz
 * Area: 
@@ -64,4 +66,16 @@ With multiplier but no divide:
     Registers: 242 vs 495
 
     Multipliers: 4x 18x18
+
+v1.2:
+
+No multiplier, but barrelshifter refactored:
+
+* Speed: 52MHz vs 99MHz
+
+* Area: 
+
+    Logic elements: 1690 (from 2137) vs 1582
+
+    Registers: 242 vs 495
 

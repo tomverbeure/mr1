@@ -224,7 +224,7 @@ object TopVerilog {
 
         val config = MR1Config(
             supportFormal = false,
-            supportMul    = true
+            supportMul    = false
         )
 
         SpinalVerilog(new TopMR1(config))

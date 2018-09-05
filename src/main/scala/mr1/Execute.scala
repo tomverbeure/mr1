@@ -135,6 +135,40 @@ class Execute(config: MR1Config) extends Component {
                     }
                 }
             }
+            is(InstrType.MULDIV){
+                if (config.hasMul) {
+                    val op1 = S(rs1).resize(33)
+                    val op2 = S(rs2).resize(33)
+                    val upper = False
+
+                    switch(funct3){
+                        is(B"000"){         // MUL
+                            rd_wr   := True
+                            upper   := False
+                            op1 := S(U(rs1).resize(33))
+                            op2 := S(U(rs2).resize(33))
+                        }
+                        is(B"001"){         // MULH
+                            rd_wr   := True
+                            upper   := True
+                        }
+                        is(B"010"){         // MULHSU
+                            rd_wr   := True
+                            upper   := True
+                            op2 := S(U(rs2).resize(33))
+                        }
+                        is(B"011"){         // MULHU
+                            rd_wr   := True
+                            upper   := True
+                            op1 := S(U(rs1).resize(33))
+                            op2 := S(U(rs2).resize(33))
+                        }
+                    }
+
+                    val result = op1 * op2
+                    rd_wdata := upper ? U(result(63 downto 32)) | U(result(31 downto 0))
+                }
+            }
         }
     }
 

@@ -173,8 +173,8 @@ class TopPicoRV32(config: MR1Config) extends Component {
             catchMisalign       = 1,
             catchIllinsn        = 1,
             enablePcpi          = 0,
-            enableMul           = 0,
-            enableFastMul       = 0,
+            enableMul           = if (config.hasMul) 1 else 0,
+            enableFastMul       = if (config.hasMul) 1 else 0,
             enableDiv           = 0,
             enableIreq          = 0,
             enableIrqQregs      = 0,
@@ -221,8 +221,14 @@ class TopPicoRV32(config: MR1Config) extends Component {
 
 object TopVerilog {
     def main(args: Array[String]) {
-        SpinalVerilog(new TopMR1(config = MR1Config(supportFormal = false)))
-        SpinalVerilog(new TopPicoRV32(config = MR1Config(supportFormal = false)))
+
+        val config = MR1Config(
+            supportFormal = false,
+            supportMul    = true
+        )
+
+        SpinalVerilog(new TopMR1(config))
+        SpinalVerilog(new TopPicoRV32(config))
     }
 }
 

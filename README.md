@@ -3,7 +3,7 @@ MR1 Project
 
 Test project for SpinalHDL
 
-v1.0: 
+v1.0:
 
 Out of the box synthesis:
 
@@ -39,7 +39,7 @@ Simply FF at output of reg file RAMS (non-functional):
 * Clock increases from 50MHz to 66MHz.
 * Critical path moves from regfile RAM output to regfile RAM input to regfile output FF to regfile RAM input.
 * Paths are all very close to eachother: adder, barrel shifter, ...
-* Adds 64 FFs, for a total of 299. As usual, Quartus isn't smart enough to merge these FFs into the RAM itself. In this case, this might be 
+* Adds 64 FFs, for a total of 299. As usual, Quartus isn't smart enough to merge these FFs into the RAM itself. In this case, this might be
   a benefit, because a core logic to core logic path may be faster than RAM to core logic.
 
 
@@ -47,7 +47,7 @@ Initial comparison with equivalent TopMR1 and TopPicoRV32:
 
 MR1 vs PicoRV32: RV32I
 * Speed: 50MHz vs 99MHz
-* Area: 
+* Area:
 
     Logic elements: 2137 vs 1582
 
@@ -59,7 +59,7 @@ v1.1:
 
 With multiplier but no divide:
 * Speed: 43MHz vs 73MHz
-* Area: 
+* Area:
 
     Logic elements: 2318 vs 1806
 
@@ -73,9 +73,23 @@ No multiplier, but barrelshifter refactored:
 
 * Speed: 52MHz vs 99MHz
 
-* Area: 
+* Area:
 
     Logic elements: 1688 (from 2137) vs 1582
 
     Registers: 242 vs 495
+
+v1.3:
+
+No multiplier, ALU and branch ops refactored
+
+* Speed: 56MHz vs 99MHz
+
+* Area:
+
+    Logic elements: 1570 (from 2137) vs 1582
+
+    Registers: 242 vs 495
+
+
 

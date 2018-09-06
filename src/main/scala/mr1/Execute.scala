@@ -71,67 +71,44 @@ class Execute(config: MR1Config) extends Component {
     val u_imm_31_12 = U(instr(31 downto 12))
     val j_imm_20_1  = S(instr(31) ## instr(19 downto 12) ## instr(20) ## instr(30 downto 21))
 
+    val i_imm       = i_imm_11_0.resize(32)
 
     val alu = new Area {
         val rd_wr    = False
         val rd_wdata = U(0, 32 bits)
 
         switch(itype){
-            is(InstrType.ALU){
+            is(InstrType.ALU, InstrType.ALU_I){
+
+                val op1 = S(rs1)
+                val op2 = (itype === InstrType.ALU) ? S(rs2) | i_imm
+
                 switch(funct3){
                     is(B"000"){         // ADD/SUB
                         rd_wr    := True
-                        rd_wdata := Mux(instr(30),
-                                        U(rs1) - U(rs2),
-                                        U(rs1) + U(rs2))
+                        rd_wdata := U(Mux( (itype === InstrType.ALU && instr(30)),
+                                        (op1 - op2),
+                                        (op1 + op2)))
                     }
                     is(B"010"){         // SLT
                         rd_wr    := True
-                        rd_wdata := U(S(rs1) < S(rs2)).resize(32)
+                        rd_wdata := U(op1 < op2).resize(32)
                     }
                     is(B"011"){         // SLTU
                         rd_wr    := True
-                        rd_wdata := U(U(rs1) < U(rs2)).resize(32)
+                        rd_wdata := U(U(op1) < U(op2)).resize(32)
                     }
                     is(B"100"){         // XOR
                         rd_wr    := True
-                        rd_wdata := U(rs1) ^ U(rs2)
+                        rd_wdata := U(op1 ^ op2)
                     }
                     is(B"110"){         // OR
                         rd_wr    := True
-                        rd_wdata := U(rs1) | U(rs2)
+                        rd_wdata := U(op1 | op2)
                     }
                     is(B"111"){         // AND
                         rd_wr    := True
-                        rd_wdata := U(rs1) & U(rs2)
-                    }
-                }
-            }
-            is(InstrType.ALU_I){
-                switch(funct3){
-                    is(B"000"){         // ADDI
-                        rd_wr    := True
-                        rd_wdata := U(S(rs1) + i_imm_11_0.resize(32))
-                    }
-                    is(B"010"){         // SLT
-                        rd_wr    := True
-                        rd_wdata := U(S(rs1) < i_imm_11_0.resize(32)).resize(32)
-                    }
-                    is(B"011"){         // SLTIU
-                        rd_wr    := True
-                        rd_wdata := U(U(rs1) < U(i_imm_11_0.resize(32))).resize(32)
-                    }
-                    is(B"100"){         // XORI
-                        rd_wr    := True
-                        rd_wdata := U(S(rs1) ^ i_imm_11_0.resize(32))
-                    }
-                    is(B"110"){         // ORI
-                        rd_wr    := True
-                        rd_wdata := U(S(rs1) | i_imm_11_0.resize(32))
-                    }
-                    is(B"111"){         // ANDI
-                        rd_wr    := True
-                        rd_wdata := U(S(rs1) & i_imm_11_0.resize(32))
+                        rd_wdata := U(op1 & op2)
                     }
                 }
             }
@@ -200,24 +177,24 @@ class Execute(config: MR1Config) extends Component {
 
         switch(itype){
             is(InstrType.B){
+                val op1 = S( (rs1(31) & !funct3(1)) ## rs1 )
+                val op2 = S( (rs2(31) & !funct3(1)) ## rs2 )
+
+                val rs1_eq_rs2 = (rs1 === rs2)
+                val op1_lt_op2 = (op1 < op2)
+
                 switch(funct3){
                     is(B"000"){         // BEQ
-                        branch_cond := (rs1 === rs2)
+                        branch_cond := rs1_eq_rs2
                     }
                     is(B"001"){         // BNE
-                        branch_cond := (rs1 =/= rs2)
+                        branch_cond := !rs1_eq_rs2
                     }
-                    is(B"100"){         // BLT
-                        branch_cond := (S(rs1) < S(rs2))
+                    is(B"100", B"110"){ // BLT, BLTU
+                        branch_cond := op1_lt_op2
                     }
-                    is(B"101"){         // BGE
-                        branch_cond := (S(rs1) >= S(rs2))
-                    }
-                    is(B"110"){         // BLTU
-                        branch_cond := (U(rs1) < U(rs2))
-                    }
-                    is(B"111"){         // BGEU
-                        branch_cond := (U(rs1) >= U(rs2))
+                    is(B"101",B"111"){  // BGE, BGEU
+                        branch_cond := !op1_lt_op2
                     }
                 }
 

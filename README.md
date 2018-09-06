@@ -79,9 +79,7 @@ No multiplier, but barrelshifter refactored:
 
     Registers: 242 vs 495
 
-v1.3:
-
-No multiplier, ALU and branch ops refactored
+ALU and branch ops refactored:
 
 * Speed: 56MHz vs 99MHz
 
@@ -91,5 +89,15 @@ No multiplier, ALU and branch ops refactored
 
     Registers: 242 vs 495
 
+
+ADD/SUB refactored into a single ADD:
+
+* Speed: 59MHz vs 99MHz
+
+* Area:
+
+    Logic elements: 1525 (from 2137) vs 1582
+
+    Registers: 242 vs 495
 
 

@@ -68,7 +68,7 @@ class Execute(config: MR1Config) extends Component {
     val i_imm_11_0  = S(instr(31 downto 20))
     val s_imm_11_0  = S(instr(31 downto 25) ## instr(11 downto 7))
     val b_imm_12_1  = S(instr(31) ## instr(7) ## instr(30 downto 25) ## instr(11 downto 8))
-    val u_imm_31_12 = U(instr(31 downto 12))
+    val u_imm       = U(instr(31 downto 12)) @@ U("12'd0")
     val j_imm_20_1  = S(instr(31) ## instr(19 downto 12) ## instr(20) ## instr(30 downto 21))
 
     val i_imm       = i_imm_11_0.resize(32)
@@ -165,16 +165,16 @@ class Execute(config: MR1Config) extends Component {
         val rd_wr    = False
         val rd_wdata = U(0, 32 bits)
 
+        val pc            = io.d2e.pc
         val pc_jump_valid = False
-        val pc            = UInt(32 bits)
         val pc_jump       = UInt(32 bits)
 
-        val branch_cond = Bool
+        val pc_op1 = SInt(32 bits)
+        val pc_op2 = SInt(32 bits)
+        val clr_lsb = False
 
-        pc          := io.d2e.pc
-        pc_jump     := pc + 4
-        branch_cond := False
-
+        pc_op1  := S(pc)
+        pc_op2  := 4
 
         switch(itype){
             is(InstrType.B){
@@ -184,50 +184,48 @@ class Execute(config: MR1Config) extends Component {
                 val rs1_eq_rs2 = (rs1 === rs2)
                 val op1_lt_op2 = (op1 < op2)
 
+                val branch_cond = False
                 switch(funct3){
-                    is(B"000"){         // BEQ
-                        branch_cond := rs1_eq_rs2
-                    }
-                    is(B"001"){         // BNE
-                        branch_cond := !rs1_eq_rs2
-                    }
-                    is(B"100", B"110"){ // BLT, BLTU
-                        branch_cond := op1_lt_op2
-                    }
-                    is(B"101",B"111"){  // BGE, BGEU
-                        branch_cond := !op1_lt_op2
-                    }
+                    is(B"000")       { branch_cond :=  rs1_eq_rs2 } // BEQ
+                    is(B"001")       { branch_cond := !rs1_eq_rs2 } // BNE
+                    is(B"100",B"110"){ branch_cond :=  op1_lt_op2 } // BLT, BLTU
+                    is(B"101",B"111"){ branch_cond := !op1_lt_op2 } // BGE, BGEU
                 }
 
                 pc_jump_valid := True
                 when(branch_cond){
-                    pc_jump := U(S(pc) + (b_imm_12_1 @@ S("0")))
+                    pc_op2 := (b_imm_12_1 @@ S("0")).resized
                 }
 
             }
             is(InstrType.JAL){
                 pc_jump_valid := True
-                pc_jump       := U(S(pc) + (j_imm_20_1 @@ S("0")))
+                pc_op2   := (j_imm_20_1 @@ S("0")).resized
 
                 rd_wr    := True
                 rd_wdata := pc +4
             }
             is(InstrType.JALR){
                 pc_jump_valid := True
-                pc_jump       := U(S(rs1) + i_imm_11_0)(31 downto 1) @@ "0"
+                pc_op1  := S(rs1)
+                pc_op2  := i_imm
+                clr_lsb := True
 
                 rd_wr    := True
                 rd_wdata := pc +4
             }
             is(InstrType.LUI){
                 rd_wr    := True
-                rd_wdata := u_imm_31_12 << 12
+                rd_wdata := u_imm
             }
             is(InstrType.AUIPC){
                 rd_wr    := True
-                rd_wdata := pc + (u_imm_31_12 << 12)
+                rd_wdata := pc + u_imm
             }
         }
+
+        // Clear LSB for JALR ops
+        pc_jump := U(pc_op1 + pc_op2) & ~(U(clr_lsb).resize(32))
     }
 
     val lsu = new Area {

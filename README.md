@@ -34,7 +34,7 @@ Remove Formal IOs:
 * 51 MHZ
 * IOW: everything RVFI has been optimized away
 
-Simply FF at output of reg file RAMS (non-functional):
+Simple FF at output of reg file RAMS (non-functional):
 
 * Clock increases from 50MHz to 66MHz.
 * Critical path moves from regfile RAM output to regfile RAM input to regfile output FF to regfile RAM input.
@@ -135,4 +135,18 @@ Break cascaded carry chains:
     Registers: 263 vs 495
 
     Critical path is now in barrel shifter
+
+Simple FF at output of reg file RAMS (non-functional):
+
+* Speed: 72MHz vs 99MHz
+
+* Area:
+
+    Logic elements: 1496 (from 2137) vs 1582
+
+    Registers: 327 vs 495
+
+    Critical path is now in barrel shifter
+
+
 

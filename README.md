@@ -124,5 +124,15 @@ Convert priority mux of execute.rd\_wdata to flat and/or reduction
 
     Registers: 263 vs 495
 
+Break cascaded carry chains:
 
+* Speed: 60MHz vs 99MHz
+
+* Area:
+
+    Logic elements: 1485 (from 2137) vs 1582
+
+    Registers: 263 vs 495
+
+    Critical path is now in barrel shifter
 

@@ -56,8 +56,6 @@ class Execute(config: MR1Config) extends Component {
                      (iformat === InstrFormat.U) ||
                      (iformat === InstrFormat.J)
 
-
-
     val rs1 = Bits(32 bits)
     val rs2 = Bits(32 bits)
 
@@ -158,16 +156,15 @@ class Execute(config: MR1Config) extends Component {
         val rd_wr    = False
         val rd_wdata = U(0, 32 bits)
 
-        val pc            = io.d2e.pc
+        val take_jump     = False
         val pc_jump_valid = False
         val pc_jump       = UInt(32 bits)
 
-        val pc_op1 = SInt(32 bits)
-        val pc_op2 = SInt(32 bits)
         val clr_lsb = False
 
-        pc_op1  := S(pc)
-        pc_op2  := 4
+        val pc       = io.d2e.pc
+        val pc_op1   = S(pc)
+        val pc_plus4 = pc + 4
 
         switch(itype){
             is(InstrType.B){
@@ -186,26 +183,23 @@ class Execute(config: MR1Config) extends Component {
                 }
 
                 pc_jump_valid := True
-                when(branch_cond){
-                    pc_op2 := imm
-                }
-
+                take_jump     := branch_cond
             }
             is(InstrType.JAL){
                 pc_jump_valid := True
-                pc_op2 := imm
+                take_jump     := True
 
                 rd_wr    := True
-                rd_wdata := pc +4
+                rd_wdata := pc_plus4
             }
             is(InstrType.JALR){
                 pc_jump_valid := True
-                pc_op1  := S(rs1)
-                pc_op2  := imm
-                clr_lsb := True
+                take_jump     := True
 
+                pc_op1   := S(rs1)
+                clr_lsb  := True
                 rd_wr    := True
-                rd_wdata := pc +4
+                rd_wdata := pc_plus4
             }
             is(InstrType.LUI){
                 rd_wr    := True
@@ -218,7 +212,9 @@ class Execute(config: MR1Config) extends Component {
         }
 
         // Clear LSB for JALR ops
-        pc_jump := U(pc_op1 + pc_op2) & ~(U(clr_lsb).resize(32))
+        pc_jump := (take_jump ? U(pc_op1 + imm) |
+                                pc_plus4        ) & ~(U(clr_lsb).resize(32))
+
     }
 
     val lsu = new Area {

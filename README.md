@@ -114,3 +114,15 @@ General IMM moved to Decode stage:
     Weird timing path with cascaded carry chains.
 
 
+Convert priority mux of execute.rd\_wdata to flat and/or reduction
+
+* Speed: 52MHz vs 99MHz
+
+* Area:
+
+    Logic elements: 1479 (from 2137) vs 1582
+
+    Registers: 263 vs 495
+
+
+

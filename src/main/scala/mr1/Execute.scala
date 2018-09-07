@@ -297,21 +297,12 @@ class Execute(config: MR1Config) extends Component {
         }
     }
 
-    val rd_wr     = io.d2e.valid && (alu.rd_wr | jump.rd_wr | shift.rd_wr | lsu.rd_wr) && (rd_addr =/= 0)
-    val rd_waddr  = rd_wr ? rd_addr | U"5'd0"
-    val rd_wdata  = B(0, 32 bits)
-
-    when(rd_wr){
-        when(alu.rd_wr){
-            rd_wdata := B(alu.rd_wdata)
-        }.elsewhen(jump.rd_wr){
-            rd_wdata := B(jump.rd_wdata)
-        }.elsewhen(shift.rd_wr){
-            rd_wdata := B(shift.rd_wdata)
-        }.elsewhen(lsu.rd_wr){
-            rd_wdata := lsu.rd_wdata
-        }
-    }
+    val rd_wr    = io.d2e.valid && (alu.rd_wr | jump.rd_wr | shift.rd_wr | lsu.rd_wr) && (rd_addr =/= 0)
+    val rd_waddr = rd_wr ? rd_addr | U"5'd0"
+    val rd_wdata = B((alu.rd_wdata.range   -> alu.rd_wr))   & B(alu.rd_wdata)   |
+                   B((jump.rd_wdata.range  -> jump.rd_wr))  & B(jump.rd_wdata)  |
+                   B((shift.rd_wdata.range -> shift.rd_wr)) & B(shift.rd_wdata) |
+                   B((lsu.rd_wdata.range   -> lsu.rd_wr))   & B(lsu.rd_wdata)
 
     io.e2d.stall         := lsu.lsu_stall
     io.e2d.pc_jump_valid := io.d2e.valid && jump.pc_jump_valid

@@ -233,22 +233,7 @@ class Execute(config: MR1Config) extends Component {
 
         val rd_wr    = False
         val rd_wdata = B(0, 32 bits)
-
-        val size = Bits(2 bits)
-        switch(funct3){
-            is(B"000", B"100"){     // LB, LBU, SB
-                size := B"00"
-            }
-            is(B"001", B"101"){     // LH, LHU, SH
-                size := B"01"
-            }
-            is(B"010"){             // LW, SW
-                size := B"10"
-            }
-            default{                // This can't happen
-                size := B"10"
-            }
-        }
+        val size     = funct3(1 downto 0)
 
         val lsu_addr = U(S(rs1) + imm)
 

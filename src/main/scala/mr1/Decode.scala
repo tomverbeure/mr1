@@ -15,6 +15,7 @@ case class Decode2Execute(config: MR1Config) extends Bundle {
     val pc              = UInt(32 bits)
     val instr           = Bits(32 bits)
     val decoded_instr   = DecodedInstr(config)
+    val imm             = SInt(32 bits)
 
     val rvfi = if (config.hasFormal) RVFI(config) else null
 
@@ -55,6 +56,8 @@ class Decode(config: MR1Config) extends Component {
         val r2rd        = in(RegFile2Read(config))
     }
 
+    val instr       = io.f2d.instr
+
     val d2f_stall_d = RegNext(io.d2f.stall, False)
     val f2d_valid_d = RegNext(io.f2d.valid, False)
     val decode_start    = io.f2d.valid && !d2f_stall_d
@@ -63,20 +66,12 @@ class Decode(config: MR1Config) extends Component {
 
     val decode = new Area {
 
-        val instr       = io.f2d.instr
-
         val opcode      = instr(6 downto 0)
         val funct3      = instr(14 downto 12)
         val funct7      = instr(31 downto 25)
         val rd_addr     = U(instr(11 downto 7))
         val rs1_addr    = U(instr(19 downto 15))
         val rs2_addr    = U(instr(24 downto 20))
-
-        val i_imm_11_0  = instr(31 downto 20)
-        val s_imm_11_0  = instr(31 downto 25) ## instr(11 downto 7)
-        val b_imm_12_1  = instr(31) ## instr(7) ## instr(30 downto 25) ## instr(11 downto 8)
-        val u_imm_31_12 = instr(31 downto 12)
-        val j_imm_20_1  = instr(31) ## instr(19 downto 12) ## instr(20) ## instr(30 downto 21)
 
         val decoded_instr       = DecodedInstr(config)
 
@@ -192,6 +187,20 @@ class Decode(config: MR1Config) extends Component {
         }
     }
 
+    val i_imm = S(B((19 downto 0) -> instr(31)) ## instr(31 downto 20))
+    val s_imm = S(B((19 downto 0) -> instr(31)) ## instr(31 downto 25) ## instr(11 downto 7))
+    val b_imm = S(B((19 downto 0) -> instr(31)) ## instr(7) ## instr(30 downto 25) ## instr(11 downto 8) ## "0")
+    val j_imm = S(B((10 downto 0) -> instr(31)) ## instr(31) ## instr(19 downto 12) ## instr(20) ## instr(30 downto 21) ## "0")
+    val u_imm = S(instr(31 downto 12) ## B((11 downto 0) -> false))
+
+    val imm = decode.decoded_instr.iformat.mux(
+                InstrFormat.I -> i_imm,
+                InstrFormat.S -> s_imm,
+                InstrFormat.B -> b_imm,
+                InstrFormat.J -> j_imm,
+                InstrFormat.U -> u_imm,
+                default       -> i_imm
+                )
 
     io.d2f.pc_jump_valid <> io.e2d.pc_jump_valid
     io.d2f.pc_jump       <> io.e2d.pc_jump
@@ -256,7 +265,8 @@ class Decode(config: MR1Config) extends Component {
         d2e_nxt.valid           := io.f2d.valid && !raw_stall
         d2e_nxt.pc              := io.f2d.pc
         d2e_nxt.decoded_instr   := decode.decoded_instr
-        d2e_nxt.instr           := decode.instr
+        d2e_nxt.instr           := instr
+        d2e_nxt.imm             := imm
 
         if (config.hasFormal)
             d2e_nxt.rvfi            := formal.rvfi

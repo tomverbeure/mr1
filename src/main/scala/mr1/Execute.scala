@@ -64,14 +64,7 @@ class Execute(config: MR1Config) extends Component {
     rs1 := io.r2rr.rs1_data
     rs2 := io.r2rr.rs2_data
 
-
-    val i_imm_11_0  = S(instr(31 downto 20))
-    val s_imm_11_0  = S(instr(31 downto 25) ## instr(11 downto 7))
-    val b_imm_12_1  = S(instr(31) ## instr(7) ## instr(30 downto 25) ## instr(11 downto 8))
-    val u_imm       = U(instr(31 downto 12)) @@ U("12'd0")
-    val j_imm_20_1  = S(instr(31) ## instr(19 downto 12) ## instr(20) ## instr(30 downto 21))
-
-    val i_imm       = i_imm_11_0.resize(32)
+    val imm = io.d2e.imm
 
     val alu = new Area {
         val rd_wr    = False
@@ -81,7 +74,7 @@ class Execute(config: MR1Config) extends Component {
             is(InstrType.ALU, InstrType.ALU_I){
 
                 val op1 = S(rs1)
-                val op2 = (itype === InstrType.ALU) ? S(rs2) | i_imm
+                val op2 = (itype === InstrType.ALU) ? S(rs2) | imm
 
                 val sub = (itype === InstrType.ALU) && instr(30)
 
@@ -194,13 +187,13 @@ class Execute(config: MR1Config) extends Component {
 
                 pc_jump_valid := True
                 when(branch_cond){
-                    pc_op2 := (b_imm_12_1 @@ S("0")).resized
+                    pc_op2 := imm
                 }
 
             }
             is(InstrType.JAL){
                 pc_jump_valid := True
-                pc_op2   := (j_imm_20_1 @@ S("0")).resized
+                pc_op2 := imm
 
                 rd_wr    := True
                 rd_wdata := pc +4
@@ -208,7 +201,7 @@ class Execute(config: MR1Config) extends Component {
             is(InstrType.JALR){
                 pc_jump_valid := True
                 pc_op1  := S(rs1)
-                pc_op2  := i_imm
+                pc_op2  := imm
                 clr_lsb := True
 
                 rd_wr    := True
@@ -216,11 +209,11 @@ class Execute(config: MR1Config) extends Component {
             }
             is(InstrType.LUI){
                 rd_wr    := True
-                rd_wdata := u_imm
+                rd_wdata := U(imm)
             }
             is(InstrType.AUIPC){
                 rd_wr    := True
-                rd_wdata := pc + u_imm
+                rd_wdata := pc + U(imm)
             }
         }
 
@@ -257,7 +250,7 @@ class Execute(config: MR1Config) extends Component {
             }
         }
 
-        val lsu_addr = U(S(rs1) + ((itype === InstrType.L) ? i_imm_11_0 | s_imm_11_0).resize(32))
+        val lsu_addr = U(S(rs1) + imm)
 
         io.data_req.valid   := False
         io.data_req.addr    := lsu_addr(31 downto 2) @@ "00"

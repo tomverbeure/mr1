@@ -101,3 +101,16 @@ ADD/SUB refactored into a single ADD:
     Registers: 242 vs 495
 
 
+General IMM moved to Decode stage:
+
+* Speed: 51MHz vs 99MHz
+
+* Area:
+
+    Logic elements: 1505 (from 2137) vs 1582
+
+    Registers: 263 vs 495
+
+    Weird timing path with cascaded carry chains.
+
+

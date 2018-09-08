@@ -4,10 +4,10 @@ package mr1
 import spinal.core._
 
 case class MR1Config(
-                supportMul      : Boolean = true,
-                supportDiv      : Boolean = true,
-                supportCsr      : Boolean = true,
-                supportFormal   : Boolean = true,
+                supportMul      : Boolean = false,
+                supportDiv      : Boolean = false,
+                supportCsr      : Boolean = false,
+                supportFormal   : Boolean = false,
                 supportFence    : Boolean = false,
                 supportAsyncReg : Boolean = false,
                 supportRegInit  : Boolean = false
@@ -160,7 +160,10 @@ class MR1(config: MR1Config) extends Component {
 
 object MR1Verilog {
     def main(args: Array[String]) {
-        SpinalVerilog(new MR1(config = MR1Config(supportFormal = true)))
+        SpinalVerilog(new MR1(config = MR1Config(supportFormal = true, 
+                                                 supportMul = false,
+                                                 supportDiv = false,
+                                                 supportCsr = false)))
     }
 }
 

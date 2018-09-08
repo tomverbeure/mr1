@@ -94,17 +94,17 @@ class Fetch(config: MR1Config) extends Component {
                     send_instr       := !io.d2f.stall
                     send_instr_r_set :=  io.d2f.stall
 
+                    real_pc            := real_pc_incr
+                    io.instr_req.addr  := real_pc_incr
+
                     when(instr_is_jump){
                         cur_state := PcState.WaitJumpDone
                     }
                     .elsewhen(fetch_halt || io.d2f.stall){
-                        real_pc   := real_pc_incr
                         cur_state := PcState.Idle
                     }
                     .otherwise{
                         io.instr_req.valid := True
-                        io.instr_req.addr  := real_pc_incr
-                        real_pc := real_pc_incr
 
                         when(io.instr_req.ready){
                             cur_state := PcState.WaitRsp

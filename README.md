@@ -148,5 +148,17 @@ Simple FF at output of reg file RAMS (non-functional):
 
     Critical path is now in barrel shifter
 
+Remove lsu.rd\_wdata from unnecessary conditional
+
+* Speed: 54MHz vs 99MHz
+
+* Area:
+
+    Logic elements: 1462 (from 2137) vs 1582
+
+    Registers: 263 vs 495
+
+    Critical path is in branch compare
+
 
 

@@ -16,6 +16,8 @@ case class Decode2Execute(config: MR1Config) extends Bundle {
     val instr           = Bits(32 bits)
     val decoded_instr   = DecodedInstr(config)
     val imm             = SInt(32 bits)
+    val rs1_data        = Bits(32 bits)
+    val rs2_data        = Bits(32 bits)
 
     val rvfi = if (config.hasFormal) RVFI(config) else null
 
@@ -49,11 +51,10 @@ class Decode(config: MR1Config) extends Component {
         val f2d         = in(Fetch2Decode(config))
         val d2f         = out(Decode2Fetch(config))
 
+        val r2rr        = in(RegFile2ReadResult(config))
+
         val d2e         = out(Reg(Decode2Execute(config)) init)
         val e2d         = in(Execute2Decode(config))
-
-        val rd2r        = out(Read2RegFile(config))
-        val r2rd        = in(RegFile2Read(config))
     }
 
     val instr       = io.f2d.instr
@@ -219,15 +220,12 @@ class Decode(config: MR1Config) extends Component {
                      (decode.decoded_instr.iformat === InstrFormat.U) ||
                      (decode.decoded_instr.iformat === InstrFormat.J)
 
-    val raw_stall = (rs1_valid && io.e2d.rd_addr_valid && (decode.rs1_addr === io.e2d.rd_addr && io.e2d.rd_addr =/= 0)) ||
-                    (rs2_valid && io.e2d.rd_addr_valid && (decode.rs2_addr === io.e2d.rd_addr && io.e2d.rd_addr =/= 0))
+    val rs1 = io.r2rr.rs1_data
+    val rs2 = io.r2rr.rs2_data
 
-    io.rd2r.rs1_rd := rs1_valid && !io.d2f.stall
-    io.rd2r.rs2_rd := rs2_valid && !io.d2f.stall
-    io.rd2r.rs1_rd_addr := rs1_valid ? decode.rs1_addr | 0
-    io.rd2r.rs2_rd_addr := rs2_valid ? decode.rs2_addr | 0
-
-    io.d2f.stall := io.e2d.stall || io.r2rd.stall || raw_stall
+    io.d2f.stall := io.e2d.stall
+    io.d2f.rd_addr_valid := rd_valid
+    io.d2f.rd_addr       := decode.rd_addr
 
     val formal = if (config.hasFormal) new Area {
 
@@ -262,16 +260,18 @@ class Decode(config: MR1Config) extends Component {
     val d2e = new Area {
         val d2e_nxt     = Decode2Execute(config).setName("d2e_nxt")
 
-        d2e_nxt.valid           := io.f2d.valid && !raw_stall
+        d2e_nxt.valid           := io.f2d.valid 
         d2e_nxt.pc              := io.f2d.pc
         d2e_nxt.decoded_instr   := decode.decoded_instr
         d2e_nxt.instr           := instr
         d2e_nxt.imm             := imm
+        d2e_nxt.rs1_data        := rs1
+        d2e_nxt.rs2_data        := rs2
 
         if (config.hasFormal)
             d2e_nxt.rvfi            := formal.rvfi
 
-        when(io.f2d.valid && !io.e2d.stall && !raw_stall){
+        when(io.f2d.valid && !io.e2d.stall){
             io.d2e          := d2e_nxt
         }
         .elsewhen(!io.e2d.stall && io.d2e.valid){

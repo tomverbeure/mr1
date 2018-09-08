@@ -14,8 +14,8 @@ class Execute(config: MR1Config) extends Component {
     val io = new Bundle {
         val d2e         = in(Decode2Execute(config))
         val e2d         = out(Execute2Decode(config))
+        val e2f         = out(Execute2Fetch(config))
 
-        val r2rr        = in(RegFile2ReadResult(config))
         val w2r         = out(Write2RegFile(config))
 
         val data_req    = DataReqIntfc(config)
@@ -56,11 +56,8 @@ class Execute(config: MR1Config) extends Component {
                      (iformat === InstrFormat.U) ||
                      (iformat === InstrFormat.J)
 
-    val rs1 = Bits(32 bits)
-    val rs2 = Bits(32 bits)
-
-    rs1 := io.r2rr.rs1_data
-    rs2 := io.r2rr.rs2_data
+    val rs1 = io.d2e.rs1_data
+    val rs2 = io.d2e.rs2_data
 
     val imm = io.d2e.imm
 
@@ -228,7 +225,6 @@ class Execute(config: MR1Config) extends Component {
         val lsu_stall = False
 
         val rd_wr    = False
-        val rd_wdata = B(0, 32 bits)
         val size     = funct3(1 downto 0)
 
         val lsu_addr = U(S(rs1) + imm)
@@ -238,9 +234,6 @@ class Execute(config: MR1Config) extends Component {
         io.data_req.wr      := False
         io.data_req.size    := size
         io.data_req.data    := rs2
-
-        val rsp_data_shift_adj = Bits(32 bits)
-        rsp_data_shift_adj := io.data_rsp.data >> (lsu_addr(1 downto 0) * 8)
 
         switch(cur_state){
             is(LsuState.Idle){
@@ -266,16 +259,20 @@ class Execute(config: MR1Config) extends Component {
                 when(io.data_rsp.valid){
                     lsu_stall := False
                     rd_wr     := True
-                    rd_wdata  := ( (funct3 === B"000") ? B(S(rsp_data_shift_adj( 7 downto 0)).resize(32)) |
-                                 ( (funct3 === B"100") ? B(U(rsp_data_shift_adj( 7 downto 0)).resize(32)) |
-                                 ( (funct3 === B"001") ? B(S(rsp_data_shift_adj(15 downto 0)).resize(32)) |
-                                 ( (funct3 === B"101") ? B(U(rsp_data_shift_adj(15 downto 0)).resize(32)) |
-                                                             io.data_rsp.data))))
 
                     cur_state := LsuState.Idle
                 }
             }
         }
+
+        val rsp_data_shift_adj = Bits(32 bits)
+        rsp_data_shift_adj := io.data_rsp.data >> (lsu_addr(1 downto 0) * 8)
+
+        val rd_wdata = ( (funct3 === B"000") ? B(S(rsp_data_shift_adj( 7 downto 0)).resize(32)) |
+                       ( (funct3 === B"100") ? B(U(rsp_data_shift_adj( 7 downto 0)).resize(32)) |
+                       ( (funct3 === B"001") ? B(S(rsp_data_shift_adj(15 downto 0)).resize(32)) |
+                       ( (funct3 === B"101") ? B(U(rsp_data_shift_adj(15 downto 0)).resize(32)) |
+                                                   rsp_data_shift_adj))))
     }
 
     val rd_wr    = io.d2e.valid && (alu.rd_wr | jump.rd_wr | shift.rd_wr | lsu.rd_wr) && (rd_addr =/= 0)
@@ -288,8 +285,12 @@ class Execute(config: MR1Config) extends Component {
     io.e2d.stall         := lsu.lsu_stall
     io.e2d.pc_jump_valid := io.d2e.valid && jump.pc_jump_valid
     io.e2d.pc_jump       := jump.pc_jump
+
     io.e2d.rd_addr_valid := io.d2e.valid && rd_valid
     io.e2d.rd_addr       := rd_addr
+
+    io.e2f.rd_addr_valid := io.d2e.valid && rd_valid
+    io.e2f.rd_addr       := rd_addr
 
     // Write to RegFile
     io.w2r.rd_wr        := rd_wr
@@ -312,8 +313,8 @@ class Execute(config: MR1Config) extends Component {
             io.rvfi.rs2_addr  := rs2_valid ? io.d2e.rvfi.rs2_addr | 0
             io.rvfi.rd_addr   := rd_valid  ? io.d2e.rvfi.rd_addr  | 0
 
-            io.rvfi.rs1_rdata := rs1_valid ? io.r2rr.rs1_data | 0
-            io.rvfi.rs2_rdata := rs2_valid ? io.r2rr.rs2_data | 0
+            io.rvfi.rs1_rdata := rs1_valid ? io.d2e.rs1_data | 0
+            io.rvfi.rs2_rdata := rs2_valid ? io.d2e.rs2_data | 0
             io.rvfi.rd_wdata  := 0
 
             io.rvfi.mem_addr  := 0

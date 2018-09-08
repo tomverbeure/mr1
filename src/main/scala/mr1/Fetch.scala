@@ -23,6 +23,14 @@ case class Decode2Fetch(config: MR1Config) extends Bundle {
 
     val pc_jump_valid       = Bool
     val pc_jump             = UInt(32 bits)
+
+    val rd_addr_valid       = Bool
+    val rd_addr             = UInt(5 bits)
+}
+
+case class Execute2Fetch(config: MR1Config) extends Bundle {
+    val rd_addr_valid       = Bool
+    val rd_addr             = UInt(5 bits)
 }
 
 class Fetch(config: MR1Config) extends Component {
@@ -33,6 +41,10 @@ class Fetch(config: MR1Config) extends Component {
 
         val f2d             =  out(Reg(Fetch2Decode(config)) init)
         val d2f             =  in(Decode2Fetch(config))
+        val e2f             =  in(Execute2Fetch(config))
+
+        val rd2r            = out(Read2RegFile(config))
+        val r2rd            = in(RegFile2Read(config))
     }
 
     val fetch_halt = False
@@ -68,7 +80,7 @@ class Fetch(config: MR1Config) extends Component {
 
         switch(cur_state){
             is(PcState.Idle){
-                when (!fetch_halt && !io.d2f.stall){
+                when (!fetch_halt && !(io.d2f.stall || io.r2rd.stall)){
                     io.instr_req.valid := True
                     io.instr_req.addr  := real_pc
 
@@ -91,8 +103,8 @@ class Fetch(config: MR1Config) extends Component {
             is(PcState.WaitRsp){
 
                 when(io.instr_rsp.valid){
-                    send_instr       := !io.d2f.stall
-                    send_instr_r_set :=  io.d2f.stall
+                    send_instr       := !(io.d2f.stall || io.r2rd.stall)
+                    send_instr_r_set :=  (io.d2f.stall || io.r2rd.stall)
 
                     real_pc            := real_pc_incr
                     io.instr_req.addr  := real_pc_incr
@@ -100,7 +112,7 @@ class Fetch(config: MR1Config) extends Component {
                     when(instr_is_jump){
                         cur_state := PcState.WaitJumpDone
                     }
-                    .elsewhen(fetch_halt || io.d2f.stall){
+                    .elsewhen(fetch_halt || (io.d2f.stall || io.r2rd.stall)){
                         cur_state := PcState.Idle
                     }
                     .otherwise{
@@ -143,9 +155,9 @@ class Fetch(config: MR1Config) extends Component {
 
     val send_instr_r = Reg(Bool) init (False)
 
-    send_instr_r := (pc.send_instr_r_set ? True   |
-                    (!io.d2f.stall       ? False  |
-                                           send_instr_r))
+    send_instr_r := (pc.send_instr_r_set              ? True   |
+                    (!(io.d2f.stall || io.r2rd.stall) ? False  |
+                                                        send_instr_r))
 
 
     val f2d_nxt = Fetch2Decode(config)
@@ -157,20 +169,40 @@ class Fetch(config: MR1Config) extends Component {
         f2d_nxt.pc    := pc.real_pc
         f2d_nxt.instr := instr
     }
-    .elsewhen(send_instr_r && !io.d2f.stall){
+    .elsewhen(send_instr_r && !(io.d2f.stall || io.r2rd.stall)){
         f2d_nxt.valid := True
         f2d_nxt.pc    := pc_r
         f2d_nxt.instr := B(instr_r)
     }
-    .elsewhen(!io.d2f.stall){
+    .elsewhen(!(io.d2f.stall || io.r2rd.stall)){
         f2d_nxt.valid := False
         f2d_nxt.pc    := U("32'd0")         // FIXME: replace with pc.real_pc later
         f2d_nxt.instr := B("32'd0")         // FIXME: replace with instr later
     }
 
-    val fetch_active = f2d_nxt.valid && !io.d2f.stall
+    val fetch_active = f2d_nxt.valid && !(io.d2f.stall || io.r2rd.stall)
 
     io.f2d := f2d_nxt
+
+    val rf = new Area {
+
+        val rs1_valid = True
+        val rs2_valid = True
+
+        val rs1_addr    = U(instr(19 downto 15))
+        val rs2_addr    = U(instr(24 downto 20))
+
+        val raw_stall = (rs1_valid && ((io.d2f.rd_addr_valid && (rs1_addr === io.d2f.rd_addr && io.d2f.rd_addr =/= 0)) ||
+                                       (io.e2f.rd_addr_valid && (rs1_addr === io.e2f.rd_addr && io.e2f.rd_addr =/= 0))    )) ||
+                        (rs2_valid && ((io.d2f.rd_addr_valid && (rs2_addr === io.d2f.rd_addr && io.d2f.rd_addr =/= 0)) ||
+                                       (io.e2f.rd_addr_valid && (rs2_addr === io.e2f.rd_addr && io.e2f.rd_addr =/= 0))    ))
+    
+        io.rd2r.rs1_rd := rs1_valid && !(io.d2f.stall || io.r2rd.stall)
+        io.rd2r.rs2_rd := rs2_valid && !(io.d2f.stall || io.r2rd.stall)
+        io.rd2r.rs1_rd_addr := rs1_valid ? rs1_addr | 0
+        io.rd2r.rs2_rd_addr := rs2_valid ? rs2_addr | 0
+    }
+
 }
 
 

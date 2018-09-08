@@ -119,7 +119,6 @@ case class DataRspIntfc(config: MR1Config) extends Bundle() {
         val data        = in(Bits(32 bits))
 }
 
-
 class MR1(config: MR1Config) extends Component {
     val io = new Bundle {
         val instr_req = InstrReqIntfc(config).setName("instr_req")
@@ -144,15 +143,17 @@ class MR1(config: MR1Config) extends Component {
     decode.io.d2e <> execute.io.d2e
     decode.io.e2d <> execute.io.e2d
 
+    fetch.io.e2f  <> execute.io.e2f
+
     io.data_req <> execute.io.data_req
     io.data_rsp <> execute.io.data_rsp
 
     val reg_file = new RegFile(config)
 
-    decode.io.rd2r  <> reg_file.io.rd2r
-    decode.io.r2rd  <> reg_file.io.r2rd
-    reg_file.io.r2rr <> execute.io.r2rr
-    reg_file.io.w2r <> execute.io.w2r
+    fetch.io.rd2r  <> reg_file.io.rd2r
+    fetch.io.r2rd  <> reg_file.io.r2rd
+    reg_file.io.r2rr <> decode.io.r2rr
+    reg_file.io.w2r  <> execute.io.w2r
 
     if (config.hasFormal)
         io.rvfi <> execute.io.rvfi

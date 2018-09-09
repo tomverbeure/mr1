@@ -160,5 +160,17 @@ Remove lsu.rd\_wdata from unnecessary conditional
 
     Critical path is in branch compare
 
+Major rework. Move register file issue to Fetch.
+
+* Speed: 73MHz vs 99MHz
+
+* Area:
+
+    Logic elements: 1501 vs 1582
+
+    Registers: 328 vs 495
+
+    Critical path is in barrel shifter.
+
 
 

@@ -130,9 +130,9 @@ class Execute(config: MR1Config) extends Component {
     }
 
     val shift = new Area {
-        val rd_wr       = (itype === InstrType.SHIFT) || (itype === InstrType.SHIFT_I)
+        val rd_wr       = (itype === InstrType.SHIFT)
         val rd_wdata    = UInt(32 bits)
-        val shamt       = (itype === InstrType.SHIFT) ? U(rs2(4 downto 0)) | U(instr(24 downto 20))
+        val shamt       = U(rs2(4 downto 0))
         val shleft      = !funct3(2)
         val op1         = instr(30) ? S(rs1(31) ## rs1) | S(B"0" ## rs1)
 

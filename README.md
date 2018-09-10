@@ -184,6 +184,15 @@ Move ALU imm to Decode
 
     Critical path is in barrel shifter.
 
+Move Shamt to Decode
 
+* Speed: 80MHz vs 99MHz
 
+* Area:
+
+    Logic elements: 1467 vs 1582
+
+    Registers: 323 vs 495
+
+    Critical path from branch to fetch
 

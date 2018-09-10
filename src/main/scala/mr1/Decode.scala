@@ -123,8 +123,8 @@ class Decode(config: MR1Config) extends Component {
                     decoded_instr.iformat   := InstrFormat.I
                 }.elsewhen( (funct7 ## funct3) === B"0000000001" || (funct7 ## funct3) === B"0000000101" || (funct7 ## funct3) === B"0100000101") {
                     // SHIFT_I: SLLI, SRLI, SRAI
-                    decoded_instr.itype     := InstrType.SHIFT_I
-                    decoded_instr.iformat   := InstrFormat.I
+                    decoded_instr.itype     := InstrType.SHIFT
+                    decoded_instr.iformat   := InstrFormat.Shamt
                 }
             }
             is(Opcodes.ALU){
@@ -209,7 +209,8 @@ class Decode(config: MR1Config) extends Component {
     val rs1_valid =  (decode.decoded_instr.iformat === InstrFormat.R) ||
                      (decode.decoded_instr.iformat === InstrFormat.I) ||
                      (decode.decoded_instr.iformat === InstrFormat.S) ||
-                     (decode.decoded_instr.iformat === InstrFormat.B)
+                     (decode.decoded_instr.iformat === InstrFormat.B) ||
+                     (decode.decoded_instr.iformat === InstrFormat.Shamt)
 
     val rs2_valid =  (decode.decoded_instr.iformat === InstrFormat.R) ||
                      (decode.decoded_instr.iformat === InstrFormat.S) ||
@@ -218,15 +219,17 @@ class Decode(config: MR1Config) extends Component {
     val rd_valid =   (decode.decoded_instr.iformat === InstrFormat.R) ||
                      (decode.decoded_instr.iformat === InstrFormat.I) ||
                      (decode.decoded_instr.iformat === InstrFormat.U) ||
-                     (decode.decoded_instr.iformat === InstrFormat.J)
+                     (decode.decoded_instr.iformat === InstrFormat.J) ||
+                     (decode.decoded_instr.iformat === InstrFormat.Shamt)
 
     val rs1 = io.r2rr.rs1_data
 
     val rs2 = Bits(32 bits)
     rs2 := decode.decoded_instr.iformat.mux(
-            InstrFormat.R   -> io.r2rr.rs2_data,
-            InstrFormat.I   -> B(i_imm),
-            default         -> io.r2rr.rs2_data
+            InstrFormat.R       -> io.r2rr.rs2_data,
+            InstrFormat.I       -> B(i_imm),
+            InstrFormat.Shamt   -> io.r2rr.rs2_data(31 downto 5) ## instr(24 downto 20),
+            default             -> io.r2rr.rs2_data
             )
 
     io.d2f.stall := io.e2d.stall

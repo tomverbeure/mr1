@@ -65,6 +65,12 @@ class Decode(config: MR1Config) extends Component {
     val decode_end      = io.f2d.valid && !io.d2f.stall
     val decode_go_idle  = !io.f2d.valid && f2d_valid_d
 
+    object Rs1Kind extends SpinalEnum {
+        val Rs1     = newElement()
+        val Zero    = newElement()
+        val Pc      = newElement()
+    }
+
     val decode = new Area {
 
         val opcode      = instr(6 downto 0)
@@ -79,14 +85,19 @@ class Decode(config: MR1Config) extends Component {
         decoded_instr.iformat   := InstrFormat.Undef
         decoded_instr.itype     := InstrType.Undef
 
+        val rs1_kind = Rs1Kind()
+        rs1_kind := Rs1Kind.Rs1
+
         switch(opcode){
             is(Opcodes.LUI){
                 decoded_instr.itype     := InstrType.LUI
                 decoded_instr.iformat   := InstrFormat.U
+                rs1_kind                := Rs1Kind.Zero
             }
             is(Opcodes.AUIPC){
                 decoded_instr.itype     := InstrType.AUIPC
                 decoded_instr.iformat   := InstrFormat.U
+                rs1_kind                := Rs1Kind.Pc
             }
             is(Opcodes.JAL){
                 decoded_instr.itype     := InstrType.JAL
@@ -222,12 +233,18 @@ class Decode(config: MR1Config) extends Component {
                      (decode.decoded_instr.iformat === InstrFormat.J) ||
                      (decode.decoded_instr.iformat === InstrFormat.Shamt)
 
-    val rs1 = io.r2rr.rs1_data
+    val rs1 = Bits(32 bits)
+    rs1 := decode.rs1_kind.mux(
+        Rs1Kind.Rs1     -> io.r2rr.rs1_data,
+        Rs1Kind.Zero    -> B"32'd0",
+        Rs1Kind.Pc      -> B(io.f2d.pc)
+    )
 
     val rs2 = Bits(32 bits)
     rs2 := decode.decoded_instr.iformat.mux(
             InstrFormat.R       -> io.r2rr.rs2_data,
             InstrFormat.I       -> B(i_imm),
+            InstrFormat.U       -> B(u_imm),
             InstrFormat.Shamt   -> io.r2rr.rs2_data(31 downto 5) ## instr(24 downto 20),
             default             -> io.r2rr.rs2_data
             )

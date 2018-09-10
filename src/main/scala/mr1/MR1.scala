@@ -47,14 +47,25 @@ case class RVFI(config: MR1Config) extends Bundle {
     val mem_wdata   = Bits(32 bits)
 
     def init() : RVFI = {
-        valid     init(False)
-        rd_addr   init(0)
-        rd_wdata  init(0)
-        mem_addr  init(0)
-        mem_rmask init(0)
-        mem_rdata init(0)
-        mem_wmask init(0)
-        mem_wdata init(0)
+        valid     init(False) addAttribute("keep")
+        order     init(0) addAttribute("keep")
+        insn      init(0) addAttribute("keep")
+        trap      init(False) addAttribute("keep")
+        halt      init(False) addAttribute("keep")
+        intr      init(False) addAttribute("keep")
+        rs1_addr  init(0) addAttribute("keep")
+        rs2_addr  init(0) addAttribute("keep")
+        rd_addr   init(0) addAttribute("keep")
+        rs1_rdata init(0) addAttribute("keep")
+        rs2_rdata init(0) addAttribute("keep")
+        rd_wdata  init(0) addAttribute("keep")
+        pc_rdata  init(0) addAttribute("keep")
+        pc_wdata  init(0) addAttribute("keep")
+        mem_addr  init(0) addAttribute("keep")
+        mem_rmask init(0) addAttribute("keep")
+        mem_rdata init(0) addAttribute("keep")
+        mem_wmask init(0) addAttribute("keep")
+        mem_wdata init(0) addAttribute("keep")
 
         this
     }

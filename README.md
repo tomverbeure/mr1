@@ -196,3 +196,27 @@ Move Shamt to Decode
 
     Critical path from branch to fetch
 
+Move AUIPC and LUI to ALU.
+
+* Speed: 80MHz vs 99MHz
+
+* Area:
+
+    Logic elements: 1427 vs 1582
+
+    Registers: 325 vs 495
+
+    Critical path in ALU_ADD
+
+Make ALU\_ADD the default rd\_wdata result
+
+* Speed: 81MHz vs 99MHz
+
+* Area:
+
+    Logic elements: 1392 vs 1582
+
+    Registers: 325 vs 495
+
+    Critical path from data RAM into reg file
+

@@ -57,16 +57,17 @@ class Execute(config: MR1Config) extends Component {
 
     val alu = new Area {
         val rd_wr    = False
-        val rd_wdata = U(0, 32 bits)
+        val rd_wdata = UInt(32 bits)
 
         val op1 = S(rs1)
         val op2 = S(rs2)
 
+        rd_wdata := U( (sub ? ( op1 @@ S"1") | (op1 @@ S"0") ) +
+                       (sub ? (~op2 @@ S"1") | (op2 @@ S"0") ))(32 downto 1)
+
         switch(itype){
             is(InstrType.ALU_ADD){
                 rd_wr    := True
-                rd_wdata := U( (sub ? ( op1 @@ S"1") | (op1 @@ S"0") ) + 
-                               (sub ? (~op2 @@ S"1") | (op2 @@ S"0") ))(32 downto 1)
             }
             is(InstrType.ALU){
                 switch(funct3){

@@ -47,7 +47,8 @@ class Execute(config: MR1Config) extends Component {
     val rd_valid =   (iformat === InstrFormat.R) ||
                      (iformat === InstrFormat.I) ||
                      (iformat === InstrFormat.U) ||
-                     (iformat === InstrFormat.J)
+                     (iformat === InstrFormat.J) ||
+                     (iformat === InstrFormat.Shamt)
 
     val rs1 = io.d2e.rs1_data
     val rs2 = io.d2e.rs2_data
@@ -295,8 +296,8 @@ class Execute(config: MR1Config) extends Component {
             io.rvfi.rs2_addr  := io.d2e.rvfi.rs2_addr
             io.rvfi.rd_addr   := io.d2e.rvfi.rd_addr
 
-            io.rvfi.rs1_rdata := io.d2e.rs1_data
-            io.rvfi.rs2_rdata := io.d2e.rs2_data
+            io.rvfi.rs1_rdata := io.d2e.rvfi.rs1_rdata
+            io.rvfi.rs2_rdata := io.d2e.rvfi.rs2_rdata
             io.rvfi.rd_wdata  := 0
 
             io.rvfi.mem_addr  := 0

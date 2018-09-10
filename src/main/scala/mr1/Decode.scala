@@ -244,8 +244,8 @@ class Decode(config: MR1Config) extends Component {
         rvfi.intr       := False
         rvfi.rs1_addr   := rs1_valid ? decode.rs1_addr | 0
         rvfi.rs2_addr   := rs2_valid ? decode.rs2_addr | 0
-        rvfi.rs1_rdata  := 0
-        rvfi.rs2_rdata  := 0
+        rvfi.rs1_rdata  := rs1_valid ? io.r2rr.rs1_data | 0
+        rvfi.rs2_rdata  := rs2_valid ? io.r2rr.rs2_data | 0
         rvfi.rd_addr    := rd_valid ?  decode.rd_addr | 0
         rvfi.rd_wdata   := 0
         rvfi.pc_rdata   := io.f2d.pc

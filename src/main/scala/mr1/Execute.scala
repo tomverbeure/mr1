@@ -309,12 +309,12 @@ class Execute(config: MR1Config) extends Component {
             io.rvfi.halt      := io.d2e.rvfi.halt
             io.rvfi.intr      := io.d2e.rvfi.intr
 
-            io.rvfi.rs1_addr  := rs1_valid ? io.d2e.rvfi.rs1_addr | 0
-            io.rvfi.rs2_addr  := rs2_valid ? io.d2e.rvfi.rs2_addr | 0
-            io.rvfi.rd_addr   := rd_valid  ? io.d2e.rvfi.rd_addr  | 0
+            io.rvfi.rs1_addr  := io.d2e.rvfi.rs1_addr
+            io.rvfi.rs2_addr  := io.d2e.rvfi.rs2_addr
+            io.rvfi.rd_addr   := io.d2e.rvfi.rd_addr
 
-            io.rvfi.rs1_rdata := rs1_valid ? io.d2e.rs1_data | 0
-            io.rvfi.rs2_rdata := rs2_valid ? io.d2e.rs2_data | 0
+            io.rvfi.rs1_rdata := io.d2e.rs1_data
+            io.rvfi.rs2_rdata := io.d2e.rs2_data
             io.rvfi.rd_wdata  := 0
 
             io.rvfi.mem_addr  := 0

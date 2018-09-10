@@ -42,15 +42,6 @@ class Execute(config: MR1Config) extends Component {
     funct3      := instr(14 downto 12)
     rd_addr     := U(instr(11 downto 7))
 
-    val rs1_valid =  (iformat === InstrFormat.R) ||
-                     (iformat === InstrFormat.I) ||
-                     (iformat === InstrFormat.S) ||
-                     (iformat === InstrFormat.B)
-
-    val rs2_valid =  (iformat === InstrFormat.R) ||
-                     (iformat === InstrFormat.S) ||
-                     (iformat === InstrFormat.B)
-
     val rd_valid =   (iformat === InstrFormat.R) ||
                      (iformat === InstrFormat.I) ||
                      (iformat === InstrFormat.U) ||
@@ -69,7 +60,7 @@ class Execute(config: MR1Config) extends Component {
             is(InstrType.ALU, InstrType.ALU_I){
 
                 val op1 = S(rs1)
-                val op2 = (itype === InstrType.ALU) ? S(rs2) | imm
+                val op2 = S(rs2)
 
                 val sub = (itype === InstrType.ALU) && instr(30)
 

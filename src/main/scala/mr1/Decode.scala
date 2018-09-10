@@ -118,11 +118,11 @@ class Decode(config: MR1Config) extends Component {
             }
             is(Opcodes.ALUI){
                 when(funct3 === B"000" || funct3 === B"010" || funct3 === B"011" || funct3 === B"100" || funct3 === B"110" || funct3 === B"111") {
-                    // ALU_I
+                    // ALU_I: ADDI, SLTI, SLTIU, XORI, ORI, ANDI
                     decoded_instr.itype     := InstrType.ALU_I
                     decoded_instr.iformat   := InstrFormat.I
                 }.elsewhen( (funct7 ## funct3) === B"0000000001" || (funct7 ## funct3) === B"0000000101" || (funct7 ## funct3) === B"0100000101") {
-                    // SHIFT_I
+                    // SHIFT_I: SLLI, SRLI, SRAI
                     decoded_instr.itype     := InstrType.SHIFT_I
                     decoded_instr.iformat   := InstrFormat.I
                 }
@@ -221,7 +221,13 @@ class Decode(config: MR1Config) extends Component {
                      (decode.decoded_instr.iformat === InstrFormat.J)
 
     val rs1 = io.r2rr.rs1_data
-    val rs2 = io.r2rr.rs2_data
+
+    val rs2 = Bits(32 bits)
+    rs2 := decode.decoded_instr.iformat.mux(
+            InstrFormat.R   -> io.r2rr.rs2_data,
+            InstrFormat.I   -> B(i_imm),
+            default         -> io.r2rr.rs2_data
+            )
 
     io.d2f.stall := io.e2d.stall
     io.d2f.rd_addr_valid := rd_valid

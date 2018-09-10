@@ -172,5 +172,18 @@ Major rework. Move register file issue to Fetch.
 
     Critical path is in barrel shifter.
 
+Move ALU imm to Decode
+
+* Speed: 77MHz vs 99MHz
+
+* Area:
+
+    Logic elements: 1528 vs 1582
+
+    Registers: 328 vs 495
+
+    Critical path is in barrel shifter.
+
+
 
 

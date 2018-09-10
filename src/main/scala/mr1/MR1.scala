@@ -73,15 +73,13 @@ object InstrFormat extends SpinalEnum {
 
 object InstrType extends SpinalEnum {
     val Undef   = newElement()
-    val LUI     = newElement()
-    val AUIPC   = newElement()
     val JAL     = newElement()
     val JALR    = newElement()
     val B       = newElement()
     val L       = newElement()
     val S       = newElement()
+    val ALU_ADD = newElement()
     val ALU     = newElement()
-    val ALU_I   = newElement()
     val SHIFT   = newElement()
     val FENCE   = newElement()
     val E       = newElement()

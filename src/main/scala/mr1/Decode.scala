@@ -7,6 +7,7 @@ case class DecodedInstr(config: MR1Config) extends Bundle {
 
     val iformat = InstrFormat()
     val itype   = InstrType()
+    val sub     = Bool
 }
 
 case class Decode2Execute(config: MR1Config) extends Bundle {
@@ -84,18 +85,20 @@ class Decode(config: MR1Config) extends Component {
 
         decoded_instr.iformat   := InstrFormat.Undef
         decoded_instr.itype     := InstrType.Undef
+        decoded_instr.sub       := False
+
 
         val rs1_kind = Rs1Kind()
         rs1_kind := Rs1Kind.Rs1
 
         switch(opcode){
             is(Opcodes.LUI){
-                decoded_instr.itype     := InstrType.LUI
+                decoded_instr.itype     := InstrType.ALU_ADD
                 decoded_instr.iformat   := InstrFormat.U
                 rs1_kind                := Rs1Kind.Zero
             }
             is(Opcodes.AUIPC){
-                decoded_instr.itype     := InstrType.AUIPC
+                decoded_instr.itype     := InstrType.ALU_ADD
                 decoded_instr.iformat   := InstrFormat.U
                 rs1_kind                := Rs1Kind.Pc
             }
@@ -128,9 +131,13 @@ class Decode(config: MR1Config) extends Component {
                 }
             }
             is(Opcodes.ALUI){
-                when(funct3 === B"000" || funct3 === B"010" || funct3 === B"011" || funct3 === B"100" || funct3 === B"110" || funct3 === B"111") {
-                    // ALU_I: ADDI, SLTI, SLTIU, XORI, ORI, ANDI
-                    decoded_instr.itype     := InstrType.ALU_I
+                when(funct3 === B"000"){
+                    decoded_instr.itype     := InstrType.ALU_ADD
+                    decoded_instr.iformat   := InstrFormat.I
+                }
+                .elsewhen(funct3 === B"010" || funct3 === B"011" || funct3 === B"100" || funct3 === B"110" || funct3 === B"111") {
+                    // ALU_I: SLTI, SLTIU, XORI, ORI, ANDI
+                    decoded_instr.itype     := InstrType.ALU
                     decoded_instr.iformat   := InstrFormat.I
                 }.elsewhen( (funct7 ## funct3) === B"0000000001" || (funct7 ## funct3) === B"0000000101" || (funct7 ## funct3) === B"0100000101") {
                     // SHIFT_I: SLLI, SRLI, SRAI
@@ -140,7 +147,13 @@ class Decode(config: MR1Config) extends Component {
             }
             is(Opcodes.ALU){
                 switch(funct7 ## funct3){
-                    is(B"0000000_000", B"0100000_000", B"0000000_100", B"0000000_110", B"0000000_111"){
+                    is(B"0000000_000", B"0100000_000"){
+                        // ADD, SUB
+                        decoded_instr.itype     := InstrType.ALU_ADD
+                        decoded_instr.iformat   := InstrFormat.R
+                        decoded_instr.sub       := funct7(5)
+                    }
+                    is(B"0000000_100", B"0000000_110", B"0000000_111"){
                         // ADD, SUB, XOR, OR, AND
                         decoded_instr.itype     := InstrType.ALU
                         decoded_instr.iformat   := InstrFormat.R

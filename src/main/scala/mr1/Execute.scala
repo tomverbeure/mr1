@@ -31,6 +31,7 @@ class Execute(config: MR1Config) extends Component {
 
     val iformat     = InstrFormat()
     val itype       = InstrType()
+    val sub         = Bool
     val instr       = Bits(32 bits)
     val funct3      = Bits(3 bits)
     val rd_addr     = UInt(5 bits)
@@ -38,6 +39,7 @@ class Execute(config: MR1Config) extends Component {
 
     iformat     := io.d2e.decoded_instr.iformat
     itype       := io.d2e.decoded_instr.itype
+    sub         := io.d2e.decoded_instr.sub
     instr       := io.d2e.instr
     funct3      := instr(14 downto 12)
     rd_addr     := U(instr(11 downto 7))
@@ -56,20 +58,17 @@ class Execute(config: MR1Config) extends Component {
         val rd_wr    = False
         val rd_wdata = U(0, 32 bits)
 
+        val op1 = S(rs1)
+        val op2 = S(rs2)
+
         switch(itype){
-            is(InstrType.ALU, InstrType.ALU_I){
-
-                val op1 = S(rs1)
-                val op2 = S(rs2)
-
-                val sub = (itype === InstrType.ALU) && instr(30)
-
+            is(InstrType.ALU_ADD){
+                rd_wr    := True
+                rd_wdata := U( (sub ? ( op1 @@ S"1") | (op1 @@ S"0") ) + 
+                               (sub ? (~op2 @@ S"1") | (op2 @@ S"0") ))(32 downto 1)
+            }
+            is(InstrType.ALU){
                 switch(funct3){
-                    is(B"000"){         // ADD/SUB
-                        rd_wr    := True
-                        rd_wdata := U( (sub ? ( op1 @@ S"1") | (op1 @@ S"0") ) + 
-                                       (sub ? (~op2 @@ S"1") | (op2 @@ S"0") ))(32 downto 1)
-                    }
                     is(B"010"){  // SLT,
                         rd_wr    := True
                         rd_wdata := U(op1 < op2).resize(32)
@@ -188,10 +187,6 @@ class Execute(config: MR1Config) extends Component {
                 clr_lsb  := True
                 rd_wr    := True
                 rd_wdata := pc_plus4
-            }
-            is(InstrType.LUI, InstrType.AUIPC){
-                rd_wr    := True
-                rd_wdata := U(rs1) + U(rs2)
             }
         }
 

@@ -77,6 +77,7 @@ class Fetch(config: MR1Config) extends Component {
         }
 
         val cur_state = Reg(PcState()) init(PcState.Idle)
+        val capture_instr = False
 
         io.instr_req.valid := False
         io.instr_req.addr  := real_pc
@@ -106,6 +107,7 @@ class Fetch(config: MR1Config) extends Component {
             is(PcState.WaitRsp){
 
                 when(io.instr_rsp.valid){
+                    capture_instr       := True
                     real_pc             := real_pc_incr
                     io.instr_req.addr   := real_pc_incr
 
@@ -171,9 +173,9 @@ class Fetch(config: MR1Config) extends Component {
         }
     }
 
-    val instr_r         = RegNextWhen(instr,         io.instr_rsp.valid) init(0)
-    val pc_r            = RegNextWhen(pc.real_pc,    io.instr_rsp.valid) init(0)
-    instr_is_jump_r    := RegNextWhen(instr_is_jump, io.instr_rsp.valid) init(False)
+    val instr_r         = RegNextWhen(instr,         pc.capture_instr) init(0)
+    val pc_r            = RegNextWhen(pc.real_pc,    pc.capture_instr) init(0)
+    instr_is_jump_r    := RegNextWhen(instr_is_jump, pc.capture_instr) init(False)
 
     val f2d_nxt = Fetch2Decode(config)
 

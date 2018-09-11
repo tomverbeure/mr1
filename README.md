@@ -232,3 +232,15 @@ Merge SLT and SLTU
 
     Critical path through ALU_ADD
 
+Reduce imm from 32 to 21 bits.
+
+* Speed: 80MHz vs 99MHz
+
+* Area:
+
+    Logic elements: 1338 vs 1582
+
+    Registers: 313 vs 495
+
+    Critical path from data RAM to reg file
+

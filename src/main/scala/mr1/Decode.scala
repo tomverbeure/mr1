@@ -16,7 +16,7 @@ case class Decode2Execute(config: MR1Config) extends Bundle {
     val pc              = UInt(32 bits)
     val instr           = Bits(32 bits)
     val decoded_instr   = DecodedInstr(config)
-    val imm             = SInt(32 bits)
+    val imm             = SInt(21 bits)
     val rs1_data        = Bits(32 bits)
     val rs2_data        = Bits(32 bits)
 
@@ -219,12 +219,11 @@ class Decode(config: MR1Config) extends Component {
     val u_imm = S(instr(31 downto 12) ## B((11 downto 0) -> false))
 
     val imm = decode.decoded_instr.iformat.mux(
-                InstrFormat.I -> i_imm,
-                InstrFormat.S -> s_imm,
-                InstrFormat.B -> b_imm,
-                InstrFormat.J -> j_imm,
-                InstrFormat.U -> u_imm,
-                default       -> i_imm
+                InstrFormat.I -> i_imm(20 downto 0),
+                InstrFormat.S -> s_imm(20 downto 0),
+                InstrFormat.B -> b_imm(20 downto 0),
+                InstrFormat.J -> j_imm(20 downto 0),
+                default       -> i_imm(20 downto 0)
                 )
 
     io.d2f.pc_jump_valid <> io.e2d.pc_jump_valid

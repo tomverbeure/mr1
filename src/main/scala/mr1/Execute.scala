@@ -29,20 +29,20 @@ class Execute(config: MR1Config) extends Component {
     val exe_start = io.d2e.valid && !e2d_stall_d
     val exe_end   = io.d2e.valid && !io.e2d.stall
 
-    val iformat     = InstrFormat()
-    val itype       = InstrType()
-    val sub         = Bool
-    val instr       = Bits(32 bits)
-    val funct3      = Bits(3 bits)
-    val rd_addr     = UInt(5 bits)
+    val iformat         = InstrFormat()
+    val itype           = InstrType()
+    val sub_unsigned    = Bool
+    val instr           = Bits(32 bits)
+    val funct3          = Bits(3 bits)
+    val rd_addr         = UInt(5 bits)
     val rd_addr_valid   = Bool
 
-    iformat     := io.d2e.decoded_instr.iformat
-    itype       := io.d2e.decoded_instr.itype
-    sub         := io.d2e.decoded_instr.sub
-    instr       := io.d2e.instr
-    funct3      := instr(14 downto 12)
-    rd_addr     := U(instr(11 downto 7))
+    iformat         := io.d2e.decoded_instr.iformat
+    itype           := io.d2e.decoded_instr.itype
+    sub_unsigned    := io.d2e.decoded_instr.sub_unsigned
+    instr           := io.d2e.instr
+    funct3          := instr(14 downto 12)
+    rd_addr         := U(instr(11 downto 7))
 
     val rd_valid =   (iformat === InstrFormat.R) ||
                      (iformat === InstrFormat.I) ||
@@ -62,21 +62,26 @@ class Execute(config: MR1Config) extends Component {
         val op1 = S(rs1)
         val op2 = S(rs2)
 
-        val op1_33 = funct3(0) ? S(U(op1).resize(33)) | op1.resize(33)
-        val op2_33 = funct3(0) ? S(U(op2).resize(33)) | op2.resize(33)
+        val rd_wdata_alu_add = U( (sub_unsigned ? ( op1 @@ S"1") | (op1 @@ S"0") ) +
+                                  (sub_unsigned ? (~op2 @@ S"1") | (op2 @@ S"0") ))(32 downto 1)
 
-        rd_wdata := U( (sub ? ( op1 @@ S"1") | (op1 @@ S"0") ) +
-                       (sub ? (~op2 @@ S"1") | (op2 @@ S"0") ))(32 downto 1)
+        val op1_33 = sub_unsigned ? S(U(op1).resize(33)) | op1.resize(33)
+        val op2_33 = sub_unsigned ? S(U(op2).resize(33)) | op2.resize(33)
+
+        val rd_wdata_alu_lt  = U(op1_33 < op2_33).resize(32)
+
+        rd_wdata := rd_wdata_alu_add
 
         switch(itype){
             is(InstrType.ALU_ADD){
                 rd_wr    := True
+                rd_wdata := rd_wdata_alu_add
             }
             is(InstrType.ALU){
                 switch(funct3){
                     is(B"010",B"011"){  // SLT, SLTU
                         rd_wr    := True
-                        rd_wdata := U(op1_33 < op2_33).resize(32) 
+                        rd_wdata := rd_wdata_alu_lt
                     }
                     is(B"100"){         // XOR
                         rd_wr    := True
@@ -156,11 +161,9 @@ class Execute(config: MR1Config) extends Component {
 
         switch(itype){
             is(InstrType.B){
-                val op1 = S( (rs1(31) & !funct3(1)) ## rs1 )
-                val op2 = S( (rs2(31) & !funct3(1)) ## rs2 )
 
                 val rs1_eq_rs2 = (rs1 === rs2)
-                val op1_lt_op2 = (op1 < op2)
+                val op1_lt_op2 = alu.rd_wdata_alu_lt(0)
 
                 val branch_cond = False
                 switch(funct3){

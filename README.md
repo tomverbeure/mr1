@@ -244,3 +244,15 @@ Reduce imm from 32 to 21 bits.
 
     Critical path from data RAM to reg file
 
+Merge BLT/BLTU with SLT/SLTU
+
+* Speed: 79MHz vs 99MHz
+
+* Area:
+
+    Logic elements: 1320 vs 1582
+
+    Registers: 313 vs 495
+
+    Critical path from data RAM to reg file
+

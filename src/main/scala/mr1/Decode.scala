@@ -5,9 +5,9 @@ import spinal.core._
 
 case class DecodedInstr(config: MR1Config) extends Bundle {
 
-    val iformat = InstrFormat()
-    val itype   = InstrType()
-    val sub     = Bool
+    val iformat      = InstrFormat()
+    val itype        = InstrType()
+    val sub_unsigned = Bool
 }
 
 case class Decode2Execute(config: MR1Config) extends Bundle {
@@ -83,10 +83,9 @@ class Decode(config: MR1Config) extends Component {
 
         val decoded_instr       = DecodedInstr(config)
 
-        decoded_instr.iformat   := InstrFormat.Undef
-        decoded_instr.itype     := InstrType.Undef
-        decoded_instr.sub       := False
-
+        decoded_instr.iformat       := InstrFormat.Undef
+        decoded_instr.itype         := InstrType.Undef
+        decoded_instr.sub_unsigned  := False
 
         val rs1_kind = Rs1Kind()
         rs1_kind := Rs1Kind.Rs1
@@ -114,8 +113,9 @@ class Decode(config: MR1Config) extends Component {
             }
             is(Opcodes.B){
                 when(funct3 =/= B"010" && funct3 =/= B"011") {
-                    decoded_instr.itype     := InstrType.B
-                    decoded_instr.iformat   := InstrFormat.B
+                    decoded_instr.itype         := InstrType.B
+                    decoded_instr.iformat       := InstrFormat.B
+                    decoded_instr.sub_unsigned  := (funct3(2 downto 1) === B"11")
                 }
             }
             is(Opcodes.L){
@@ -149,24 +149,25 @@ class Decode(config: MR1Config) extends Component {
                 switch(funct7 ## funct3){
                     is(B"0000000_000", B"0100000_000"){
                         // ADD, SUB
-                        decoded_instr.itype     := InstrType.ALU_ADD
-                        decoded_instr.iformat   := InstrFormat.R
-                        decoded_instr.sub       := funct7(5)
+                        decoded_instr.itype         := InstrType.ALU_ADD
+                        decoded_instr.iformat       := InstrFormat.R
+                        decoded_instr.sub_unsigned  := funct7(5)
                     }
                     is(B"0000000_100", B"0000000_110", B"0000000_111"){
                         // ADD, SUB, XOR, OR, AND
-                        decoded_instr.itype     := InstrType.ALU
-                        decoded_instr.iformat   := InstrFormat.R
+                        decoded_instr.itype         := InstrType.ALU
+                        decoded_instr.iformat       := InstrFormat.R
                     }
                     is(B"0000000_001", B"0000000_101", B"0100000_101"){
                         // SLL, SRL, SRA
-                        decoded_instr.itype     := InstrType.SHIFT
-                        decoded_instr.iformat   := InstrFormat.R
+                        decoded_instr.itype         := InstrType.SHIFT
+                        decoded_instr.iformat       := InstrFormat.R
                     }
                     is( B"0000000_010", B"0000000_011") {
                         // SLT, SLTU
-                        decoded_instr.itype     := InstrType.ALU
-                        decoded_instr.iformat   := InstrFormat.R
+                        decoded_instr.itype         := InstrType.ALU
+                        decoded_instr.iformat       := InstrFormat.R
+                        decoded_instr.sub_unsigned  := funct3(0)
                     }
                     is(B"0000001_000", B"0000001_001", B"0000001_010", B"0000001_011"){
                         // MUL

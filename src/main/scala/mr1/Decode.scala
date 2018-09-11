@@ -212,6 +212,12 @@ class Decode(config: MR1Config) extends Component {
                 }
             }
         }
+
+        if (
+        decoded_instr.iformat       := InstrFormat.Undef
+        decoded_instr.itype         := InstrType.Undef
+        decoded_instr.sub_unsigned  := False
+
     }
 
     val i_imm = S(B((19 downto 0) -> instr(31)) ## instr(31 downto 20))

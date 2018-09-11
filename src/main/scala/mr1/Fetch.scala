@@ -189,7 +189,7 @@ class Fetch(config: MR1Config) extends Component {
     }
     .elsewhen(!down_stall){
         f2d_nxt.valid := False
-        if (false){
+        if (true){
             // This makes debugging a bit easier, but it costs a few gates and timing
             f2d_nxt.pc    := U("32'd0")
             f2d_nxt.instr := B("32'd0")

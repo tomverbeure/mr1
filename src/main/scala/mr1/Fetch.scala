@@ -7,7 +7,7 @@ import spinal.core._
 case class Fetch2Decode(config: MR1Config) extends Bundle {
 
     val valid               = Bool
-    val pc                  = UInt(32 bits)
+    val pc                  = UInt(config.pcSize bits)
     val instr               = Bits(32 bits)
 
     def init() : Fetch2Decode = {
@@ -22,7 +22,7 @@ case class Decode2Fetch(config: MR1Config) extends Bundle {
     val stall               = Bool
 
     val pc_jump_valid       = Bool
-    val pc_jump             = UInt(32 bits)
+    val pc_jump             = UInt(config.pcSize bits)
 
     val rd_addr_valid       = Bool
     val rd_addr             = UInt(5 bits)
@@ -63,7 +63,7 @@ class Fetch(config: MR1Config) extends Component {
 
     val pc = new Area {
         // Keeps track of real, confirmed PC
-        val real_pc = Reg(UInt(32 bits)) init(0)
+        val real_pc = Reg(UInt(config.pcSize bits)) init(0)
         val real_pc_incr = real_pc + 4
 
         val send_instr       = False
@@ -193,8 +193,8 @@ class Fetch(config: MR1Config) extends Component {
         f2d_nxt.valid := False
         if (true){
             // This makes debugging a bit easier, but it costs a few gates and timing
-            f2d_nxt.pc    := U("32'd0")
-            f2d_nxt.instr := B("32'd0")
+            f2d_nxt.pc    := 0
+            f2d_nxt.instr := 0
         }
     }
 

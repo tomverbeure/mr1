@@ -10,7 +10,8 @@ case class MR1Config(
                 supportFormal   : Boolean = false,
                 supportFence    : Boolean = false,
                 supportAsyncReg : Boolean = false,
-                supportRegInit  : Boolean = false
+                supportRegInit  : Boolean = false,
+                pcSize          : Int     = 32
                 ) {
 
     def hasMul      = supportMul
@@ -102,7 +103,7 @@ case class InstrReqIntfc(config: MR1Config) extends Bundle() {
 
         val valid       = out(Bool)
         val ready       = in(Bool)
-        val addr        = out(UInt(32 bits))
+        val addr        = out(UInt(config.pcSize bits))
 }
 
 case class InstrRspIntfc(config: MR1Config) extends Bundle() {
@@ -136,7 +137,7 @@ class MR1(config: MR1Config) extends Component {
         val data_req  = DataReqIntfc(config).setName("data_req")
         val data_rsp  = DataRspIntfc(config).setName("data_rsp")
 
-        val rvfi        = if (config.hasFormal) out(RVFI(config).setName("rvfi")) else null
+        val rvfi        = if (config.supportFormal) out(RVFI(config).setName("rvfi")) else null
     }
 
     val fetch = new Fetch(config)
@@ -164,13 +165,14 @@ class MR1(config: MR1Config) extends Component {
     reg_file.io.r2rr <> decode.io.r2rr
     reg_file.io.w2r  <> execute.io.w2r
 
-    if (config.hasFormal)
+    if (config.hasFormal){
         io.rvfi <> execute.io.rvfi
+    }
 }
 
 object MR1Verilog {
     def main(args: Array[String]) {
-        SpinalVerilog(new MR1(config = MR1Config(supportFormal = true, 
+        SpinalVerilog(new MR1(config = MR1Config(supportFormal = true,
                                                  supportMul = false,
                                                  supportDiv = false,
                                                  supportCsr = false)))

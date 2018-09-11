@@ -13,7 +13,7 @@ case class DecodedInstr(config: MR1Config) extends Bundle {
 case class Decode2Execute(config: MR1Config) extends Bundle {
 
     val valid           = Bool
-    val pc              = UInt(32 bits)
+    val pc              = UInt(config.pcSize bits)
     val instr           = Bits(32 bits)
     val decoded_instr   = DecodedInstr(config)
     val imm             = SInt(21 bits)
@@ -36,7 +36,7 @@ case class Execute2Decode(config: MR1Config) extends Bundle {
     val stall   = Bool
 
     val pc_jump_valid = Bool                // FIXME: This is probably redundant with stall, but let's leave it for now.
-    val pc_jump       = UInt(32 bits)
+    val pc_jump       = UInt(config.pcSize bits)
 
     val rd_addr_valid = Bool
     val rd_addr       = UInt(5 bits)
@@ -253,7 +253,7 @@ class Decode(config: MR1Config) extends Component {
     rs1 := decode.rs1_kind.mux(
         Rs1Kind.Rs1     -> io.r2rr.rs1_data,
         Rs1Kind.Zero    -> B"32'd0",
-        Rs1Kind.Pc      -> B(io.f2d.pc)
+        Rs1Kind.Pc      -> B(io.f2d.pc).resize(32)
     )
 
     val rs2 = Bits(32 bits)
@@ -290,7 +290,7 @@ class Decode(config: MR1Config) extends Component {
         rvfi.rs2_rdata  := rs2_valid ? io.r2rr.rs2_data | 0
         rvfi.rd_addr    := rd_valid ?  decode.rd_addr | 0
         rvfi.rd_wdata   := 0
-        rvfi.pc_rdata   := io.f2d.pc
+        rvfi.pc_rdata   := io.f2d.pc.resize(32)
         rvfi.pc_wdata   := 0
         rvfi.mem_addr   := 0
         rvfi.mem_rmask  := 0

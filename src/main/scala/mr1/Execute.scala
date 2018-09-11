@@ -140,7 +140,7 @@ class Execute(config: MR1Config) extends Component {
 
         val take_jump     = False
         val pc_jump_valid = False
-        val pc_jump       = UInt(32 bits)
+        val pc_jump       = UInt(config.pcSize bits)
 
         val clr_lsb = False
 
@@ -149,7 +149,7 @@ class Execute(config: MR1Config) extends Component {
         val pc_plus4 = pc + 4
 
         val rd_wr    = False
-        val rd_wdata = pc_plus4
+        val rd_wdata = pc_plus4.resize(32)
 
         switch(itype){
             is(InstrType.B){
@@ -178,15 +178,15 @@ class Execute(config: MR1Config) extends Component {
                 pc_jump_valid := True
                 take_jump     := True
 
-                pc_op1   := S(rs1)
+                pc_op1   := S(rs1).resize(config.pcSize)
                 clr_lsb  := True
                 rd_wr    := True
             }
         }
 
         // Clear LSB for JALR ops
-        pc_jump := (take_jump ? U(pc_op1 + imm) |
-                                pc_plus4        ) & ~(U(clr_lsb).resize(32))
+        pc_jump := (take_jump ? U(pc_op1 + imm.resize(config.pcSize)) |
+                                pc_plus4                              ) & ~(U(clr_lsb).resize(config.pcSize))
 
     }
 
@@ -310,7 +310,7 @@ class Execute(config: MR1Config) extends Component {
 
         when(exe_end){
             when(io.e2d.pc_jump_valid){
-                io.rvfi.pc_wdata  := io.e2d.pc_jump
+                io.rvfi.pc_wdata  := io.e2d.pc_jump.resize(32)
             }
             .otherwise{
                 io.rvfi.pc_wdata  := io.d2e.rvfi.pc_rdata + 4

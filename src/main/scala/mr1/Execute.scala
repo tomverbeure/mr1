@@ -146,9 +146,6 @@ class Execute(config: MR1Config) extends Component {
 
     val jump = new Area {
 
-        val rd_wr    = False
-        val rd_wdata = U(0, 32 bits)
-
         val take_jump     = False
         val pc_jump_valid = False
         val pc_jump       = UInt(32 bits)
@@ -158,6 +155,9 @@ class Execute(config: MR1Config) extends Component {
         val pc       = io.d2e.pc
         val pc_op1   = S(pc)
         val pc_plus4 = pc + 4
+
+        val rd_wr    = False
+        val rd_wdata = pc_plus4
 
         switch(itype){
             is(InstrType.B){
@@ -181,7 +181,6 @@ class Execute(config: MR1Config) extends Component {
                 take_jump     := True
 
                 rd_wr    := True
-                rd_wdata := pc_plus4
             }
             is(InstrType.JALR){
                 pc_jump_valid := True
@@ -190,7 +189,6 @@ class Execute(config: MR1Config) extends Component {
                 pc_op1   := S(rs1)
                 clr_lsb  := True
                 rd_wr    := True
-                rd_wdata := pc_plus4
             }
         }
 

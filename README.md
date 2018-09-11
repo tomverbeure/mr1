@@ -256,3 +256,15 @@ Merge BLT/BLTU with SLT/SLTU
 
     Critical path from data RAM to reg file
 
+jump.rd\_wdata is always pc\_plus4
+
+* Speed: 82MHz vs 99MHz
+
+* Area:
+
+    Logic elements: 1324 vs 1582
+
+    Registers: 313 vs 495
+
+    Critical path from data RAM to reg file
+

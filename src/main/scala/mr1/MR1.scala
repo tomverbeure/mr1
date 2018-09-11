@@ -11,7 +11,8 @@ case class MR1Config(
                 supportFence    : Boolean = false,
                 supportAsyncReg : Boolean = false,
                 supportRegInit  : Boolean = false,
-                pcSize          : Int     = 32
+                pcSize          : Int     = 32,
+                dataAddrSize    : Int     = 32
                 ) {
 
     def hasMul      = supportMul
@@ -116,7 +117,7 @@ case class DataReqIntfc(config: MR1Config) extends Bundle() {
 
         val valid       = out(Bool)
         val ready       = in(Bool)
-        val addr        = out(UInt(32 bits))
+        val addr        = out(UInt(config.dataAddrSize bits))
         val wr          = out(Bool)
         val size        = out(Bits(2 bits))
         val data        = out(Bits(32 bits))

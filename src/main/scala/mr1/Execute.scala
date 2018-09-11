@@ -206,7 +206,7 @@ class Execute(config: MR1Config) extends Component {
         val lsu_addr = U(S(rs1) + imm)
 
         io.data_req.valid   := False
-        io.data_req.addr    := lsu_addr
+        io.data_req.addr    := lsu_addr.resize(config.dataAddrSize)
         io.data_req.wr      := False
         io.data_req.size    := size
         io.data_req.data    := size.mux(
@@ -325,7 +325,7 @@ class Execute(config: MR1Config) extends Component {
             }
             is(InstrType.L){
                 when(io.data_req.valid && io.data_req.ready){
-                    io.rvfi.mem_addr  := io.data_req.addr(31 downto 2) @@ U"00"
+                    io.rvfi.mem_addr  := lsu.lsu_addr(31 downto 2) @@ U"00"
                     io.rvfi.mem_rmask := ((io.data_req.size === B"00") ? B"0001" |
                                          ((io.data_req.size === B"01") ? B"0011" |
                                                                          B"1111")) |<< lsu.lsu_addr(1 downto 0)
@@ -340,7 +340,7 @@ class Execute(config: MR1Config) extends Component {
             }
             is(InstrType.S){
                 when(io.data_req.valid && io.data_req.ready){
-                    io.rvfi.mem_addr  := io.data_req.addr(31 downto 2) @@ U"00"
+                    io.rvfi.mem_addr  := lsu.lsu_addr(31 downto 2) @@ U"00"
                     io.rvfi.mem_wmask := ((io.data_req.size === B"00") ? B"0001" |
                                          ((io.data_req.size === B"01") ? B"0011" |
                                                                          B"1111")) |<< lsu.lsu_addr(1 downto 0)

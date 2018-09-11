@@ -220,3 +220,15 @@ Make ALU\_ADD the default rd\_wdata result
 
     Critical path from data RAM into reg file
 
+Merge SLT and SLTU
+
+* Speed: 81MHz vs 99MHz
+
+* Area:
+
+    Logic elements: 1374 vs 1582
+
+    Registers: 325 vs 495
+
+    Critical path through ALU_ADD
+

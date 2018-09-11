@@ -62,6 +62,9 @@ class Execute(config: MR1Config) extends Component {
         val op1 = S(rs1)
         val op2 = S(rs2)
 
+        val op1_33 = funct3(0) ? S(U(op1).resize(33)) | op1.resize(33)
+        val op2_33 = funct3(0) ? S(U(op2).resize(33)) | op2.resize(33)
+
         rd_wdata := U( (sub ? ( op1 @@ S"1") | (op1 @@ S"0") ) +
                        (sub ? (~op2 @@ S"1") | (op2 @@ S"0") ))(32 downto 1)
 
@@ -71,13 +74,9 @@ class Execute(config: MR1Config) extends Component {
             }
             is(InstrType.ALU){
                 switch(funct3){
-                    is(B"010"){  // SLT,
+                    is(B"010",B"011"){  // SLT, SLTU
                         rd_wr    := True
-                        rd_wdata := U(op1 < op2).resize(32)
-                    }
-                    is(B"011"){         // SLTU
-                        rd_wr    := True
-                        rd_wdata := U(U(op1) < U(op2)).resize(32)
+                        rd_wdata := U(op1_33 < op2_33).resize(32) 
                     }
                     is(B"100"){         // XOR
                         rd_wr    := True

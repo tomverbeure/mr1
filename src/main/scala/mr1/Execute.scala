@@ -29,7 +29,6 @@ class Execute(config: MR1Config) extends Component {
     val exe_start = io.d2e.valid && !e2d_stall_d
     val exe_end   = io.d2e.valid && !io.e2d.stall
 
-    val iformat         = InstrFormat()
     val itype           = InstrType()
     val sub_unsigned    = Bool
     val instr           = Bits(32 bits)
@@ -37,18 +36,11 @@ class Execute(config: MR1Config) extends Component {
     val rd_addr         = UInt(5 bits)
     val rd_addr_valid   = Bool
 
-    iformat         := io.d2e.decoded_instr.iformat
     itype           := io.d2e.decoded_instr.itype
     sub_unsigned    := io.d2e.decoded_instr.sub_unsigned
     instr           := io.d2e.instr
     funct3          := instr(14 downto 12)
     rd_addr         := U(instr(11 downto 7))
-
-    val rd_valid =   (iformat === InstrFormat.R) ||
-                     (iformat === InstrFormat.I) ||
-                     (iformat === InstrFormat.U) ||
-                     (iformat === InstrFormat.J) ||
-                     (iformat === InstrFormat.Shamt)
 
     val rs1 = io.d2e.rs1_data
     val rs2 = io.d2e.rs2_data
@@ -273,10 +265,10 @@ class Execute(config: MR1Config) extends Component {
     io.e2d.pc_jump_valid := io.d2e.valid && jump.pc_jump_valid
     io.e2d.pc_jump       := jump.pc_jump
 
-    io.e2d.rd_addr_valid := io.d2e.valid && rd_valid
+    io.e2d.rd_addr_valid := io.d2e.valid && io.d2e.rd_valid
     io.e2d.rd_addr       := rd_addr
 
-    io.e2f.rd_addr_valid := io.d2e.valid && rd_valid
+    io.e2f.rd_addr_valid := io.d2e.valid && io.d2e.rd_valid
     io.e2f.rd_addr       := rd_addr
 
     // Write to RegFile

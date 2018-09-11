@@ -19,6 +19,7 @@ case class Decode2Execute(config: MR1Config) extends Bundle {
     val imm             = SInt(21 bits)
     val rs1_data        = Bits(32 bits)
     val rs2_data        = Bits(32 bits)
+    val rd_valid        = Bool
 
     val rvfi = if (config.hasFormal) RVFI(config) else null
 
@@ -308,6 +309,7 @@ class Decode(config: MR1Config) extends Component {
         d2e_nxt.imm             := imm
         d2e_nxt.rs1_data        := rs1
         d2e_nxt.rs2_data        := rs2
+        d2e_nxt.rd_valid        := rd_valid
 
         if (config.hasFormal)
             d2e_nxt.rvfi            := formal.rvfi

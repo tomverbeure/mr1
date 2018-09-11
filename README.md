@@ -280,3 +280,15 @@ Non-32-bit memory operations were completely broken. GASP.
 
     Critical path from data RAM to reg file
 
+Remove iformat from Execute
+
+* Speed: 82MHz vs 99MHz
+
+* Area:
+
+    Logic elements: 1336 vs 1582
+
+    Registers: 311 vs 495
+
+    Critical path execute.rs2 to instr RAM
+

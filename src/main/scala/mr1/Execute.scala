@@ -214,10 +214,13 @@ class Execute(config: MR1Config) extends Component {
         val lsu_addr = U(S(rs1) + imm)
 
         io.data_req.valid   := False
-        io.data_req.addr    := lsu_addr(31 downto 2) @@ "00"
+        io.data_req.addr    := lsu_addr
         io.data_req.wr      := False
         io.data_req.size    := size
-        io.data_req.data    := rs2
+        io.data_req.data    := size.mux(
+                                B"00"   -> rs2( 7 downto 0) ## rs2( 7 downto 0) ## rs2( 7 downto 0) ## rs2( 7 downto 0),
+                                B"01"   -> rs2(15 downto 0) ## rs2(15 downto 0),
+                                default -> rs2)
 
         switch(cur_state){
             is(LsuState.Idle){
@@ -330,7 +333,7 @@ class Execute(config: MR1Config) extends Component {
             }
             is(InstrType.L){
                 when(io.data_req.valid && io.data_req.ready){
-                    io.rvfi.mem_addr  := io.data_req.addr
+                    io.rvfi.mem_addr  := io.data_req.addr(31 downto 2) @@ U"00"
                     io.rvfi.mem_rmask := ((io.data_req.size === B"00") ? B"0001" |
                                          ((io.data_req.size === B"01") ? B"0011" |
                                                                          B"1111")) |<< lsu.lsu_addr(1 downto 0)
@@ -345,14 +348,12 @@ class Execute(config: MR1Config) extends Component {
             }
             is(InstrType.S){
                 when(io.data_req.valid && io.data_req.ready){
-                    io.rvfi.mem_addr  := io.data_req.addr
+                    io.rvfi.mem_addr  := io.data_req.addr(31 downto 2) @@ U"00"
                     io.rvfi.mem_wmask := ((io.data_req.size === B"00") ? B"0001" |
                                          ((io.data_req.size === B"01") ? B"0011" |
                                                                          B"1111")) |<< lsu.lsu_addr(1 downto 0)
 
-                    io.rvfi.mem_wdata := ((io.data_req.size === B"00") ? io.data_req.data(7 downto 0).resize(32)  |
-                                         ((io.data_req.size === B"01") ? io.data_req.data(15 downto 0).resize(32) |
-                                                                         io.data_req.data)) |<< (lsu.lsu_addr(1 downto 0) * 8)
+                    io.rvfi.mem_wdata := io.data_req.data
 
                     io.rvfi.trap      := (io.data_req.size === B"01" && lsu.lsu_addr(0)) |
                                          (io.data_req.size === B"10" && lsu.lsu_addr(1 downto 0) =/= "00")

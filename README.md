@@ -268,3 +268,15 @@ jump.rd\_wdata is always pc\_plus4
 
     Critical path from data RAM to reg file
 
+Non-32-bit memory operations were completely broken. GASP.
+
+* Speed: 82MHz vs 99MHz
+
+* Area:
+
+    Logic elements: 1358 vs 1582
+
+    Registers: 313 vs 495
+
+    Critical path from data RAM to reg file
+

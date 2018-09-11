@@ -137,8 +137,9 @@ class Decode(config: MR1Config) extends Component {
                 }
                 .elsewhen(funct3 === B"010" || funct3 === B"011" || funct3 === B"100" || funct3 === B"110" || funct3 === B"111") {
                     // ALU_I: SLTI, SLTIU, XORI, ORI, ANDI
-                    decoded_instr.itype     := InstrType.ALU
-                    decoded_instr.iformat   := InstrFormat.I
+                    decoded_instr.itype         := InstrType.ALU
+                    decoded_instr.iformat       := InstrFormat.I
+                    decoded_instr.sub_unsigned  := funct3(2 downto 0) === B"011"
                 }.elsewhen( (funct7 ## funct3) === B"0000000001" || (funct7 ## funct3) === B"0000000101" || (funct7 ## funct3) === B"0100000101") {
                     // SHIFT_I: SLLI, SRLI, SRAI
                     decoded_instr.itype     := InstrType.SHIFT

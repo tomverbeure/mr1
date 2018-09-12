@@ -17,8 +17,9 @@ case class Decode2Execute(config: MR1Config) extends Bundle {
     val instr           = Bits(32 bits)
     val decoded_instr   = DecodedInstr(config)
     val imm             = SInt(21 bits)
-    val rs1_data        = Bits(32 bits)
-    val rs2_data        = Bits(32 bits)
+    val op1             = Bits(32 bits)
+    val op2             = Bits(32 bits)
+    val rs2             = Bits(32 bits)
     val rd_valid        = Bool
 
     val rvfi = if (config.hasFormal) RVFI(config) else null
@@ -67,7 +68,7 @@ class Decode(config: MR1Config) extends Component {
     val decode_end      = io.f2d.valid && !io.d2f.stall
     val decode_go_idle  = !io.f2d.valid && f2d_valid_d
 
-    object Rs1Kind extends SpinalEnum {
+    object Op1Kind extends SpinalEnum {
         val Rs1     = newElement()
         val Zero    = newElement()
         val Pc      = newElement()
@@ -88,19 +89,19 @@ class Decode(config: MR1Config) extends Component {
         decoded_instr.itype         := InstrType.Undef
         decoded_instr.sub_unsigned  := False
 
-        val rs1_kind = Rs1Kind()
-        rs1_kind := Rs1Kind.Rs1
+        val op1_kind = Op1Kind()
+        op1_kind := Op1Kind.Rs1
 
         switch(opcode){
             is(Opcodes.LUI){
                 decoded_instr.itype     := InstrType.ALU_ADD
                 decoded_instr.iformat   := InstrFormat.U
-                rs1_kind                := Rs1Kind.Zero
+                op1_kind                := Op1Kind.Zero
             }
             is(Opcodes.AUIPC){
                 decoded_instr.itype     := InstrType.ALU_ADD
                 decoded_instr.iformat   := InstrFormat.U
-                rs1_kind                := Rs1Kind.Pc
+                op1_kind                := Op1Kind.Pc
             }
             is(Opcodes.JAL){
                 decoded_instr.itype     := InstrType.JAL
@@ -249,15 +250,15 @@ class Decode(config: MR1Config) extends Component {
                      (decode.decoded_instr.iformat === InstrFormat.J) ||
                      (decode.decoded_instr.iformat === InstrFormat.Shamt)
 
-    val rs1 = Bits(32 bits)
-    rs1 := decode.rs1_kind.mux(
-        Rs1Kind.Rs1     -> io.r2rr.rs1_data,
-        Rs1Kind.Zero    -> B"32'd0",
-        Rs1Kind.Pc      -> B(io.f2d.pc).resize(32)
+    val op1 = Bits(32 bits)
+    op1 := decode.op1_kind.mux(
+        Op1Kind.Rs1     -> io.r2rr.rs1_data,
+        Op1Kind.Zero    -> B"32'd0",
+        Op1Kind.Pc      -> B(io.f2d.pc).resize(32)
     )
 
-    val rs2 = Bits(32 bits)
-    rs2 := decode.decoded_instr.iformat.mux(
+    val op2 = Bits(32 bits)
+    op2 := decode.decoded_instr.iformat.mux(
             InstrFormat.R       -> io.r2rr.rs2_data,
             InstrFormat.I       -> B(i_imm),
             InstrFormat.U       -> B(u_imm),
@@ -307,8 +308,9 @@ class Decode(config: MR1Config) extends Component {
         d2e_nxt.decoded_instr   := decode.decoded_instr
         d2e_nxt.instr           := instr
         d2e_nxt.imm             := imm
-        d2e_nxt.rs1_data        := rs1
-        d2e_nxt.rs2_data        := rs2
+        d2e_nxt.op1             := op1
+        d2e_nxt.op2             := op2
+        d2e_nxt.rs2             := io.r2rr.rs2_data
         d2e_nxt.rd_valid        := rd_valid
 
         if (config.hasFormal)

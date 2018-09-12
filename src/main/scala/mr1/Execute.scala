@@ -42,17 +42,15 @@ class Execute(config: MR1Config) extends Component {
     funct3          := instr(14 downto 12)
     rd_addr         := U(instr(11 downto 7))
 
-    val rs1 = io.d2e.rs1_data
-    val rs2 = io.d2e.rs2_data
+    val op1 = S(io.d2e.op1)
+    val op2 = S(io.d2e.op2)
+    val rs2 = io.d2e.rs2
 
     val imm = io.d2e.imm
 
     val alu = new Area {
         val rd_wr    = False
         val rd_wdata = UInt(32 bits)
-
-        val op1 = S(rs1)
-        val op2 = S(rs2)
 
         val rd_wdata_alu_add = U( (sub_unsigned ? ( op1 @@ S"1") | (op1 @@ S"0") ) +
                                   (sub_unsigned ? (~op2 @@ S"1") | (op2 @@ S"0") ))(32 downto 1)
@@ -91,16 +89,16 @@ class Execute(config: MR1Config) extends Component {
             }
             is(InstrType.MULDIV){
                 if (config.hasMul) {
-                    val op1 = S(rs1).resize(33)
-                    val op2 = S(rs2).resize(33)
+                    val op1_33 = op1.resize(33)
+                    val op2_33 = op2.resize(33)
                     val upper = False
 
                     switch(funct3){
                         is(B"000"){         // MUL
                             rd_wr   := True
                             upper   := False
-                            op1 := S(U(rs1).resize(33))
-                            op2 := S(U(rs2).resize(33))
+                            op1_33 := S(U(op1).resize(33))
+                            op2_33 := S(U(op2).resize(33))
                         }
                         is(B"001"){         // MULH
                             rd_wr   := True
@@ -109,17 +107,17 @@ class Execute(config: MR1Config) extends Component {
                         is(B"010"){         // MULHSU
                             rd_wr   := True
                             upper   := True
-                            op2 := S(U(rs2).resize(33))
+                            op2_33 := S(U(op2).resize(33))
                         }
                         is(B"011"){         // MULHU
                             rd_wr   := True
                             upper   := True
-                            op1 := S(U(rs1).resize(33))
-                            op2 := S(U(rs2).resize(33))
+                            op1_33 := S(U(op1).resize(33))
+                            op2_33 := S(U(op2).resize(33))
                         }
                     }
 
-                    val result = op1 * op2
+                    val result = op1_33 * op2_33
                     rd_wdata := upper ? U(result(63 downto 32)) | U(result(31 downto 0))
                 }
             }
@@ -129,11 +127,11 @@ class Execute(config: MR1Config) extends Component {
     val shift = new Area {
         val rd_wr       = (itype === InstrType.SHIFT)
         val rd_wdata    = UInt(32 bits)
-        val shamt       = U(rs2(4 downto 0))
+        val shamt       = U(op2(4 downto 0))
         val shleft      = !funct3(2)
-        val op1         = instr(30) ? S(rs1(31) ## rs1) | S(B"0" ## rs1)
+        val op1_33      = instr(30) ? S(op1(31) ## op1) | S(B"0" ## op1)
 
-        rd_wdata := U(shleft ? (op1 |<< shamt) | (op1 |>> shamt))(31 downto 0)
+        rd_wdata := U(shleft ? (op1_33 |<< shamt) | (op1_33 |>> shamt))(31 downto 0)
     }
 
     val jump = new Area {
@@ -154,13 +152,13 @@ class Execute(config: MR1Config) extends Component {
         switch(itype){
             is(InstrType.B){
 
-                val rs1_eq_rs2 = (rs1 === rs2)
+                val op1_eq_op2 = (op1 === op2)
                 val op1_lt_op2 = alu.rd_wdata_alu_lt(0)
 
                 val branch_cond = False
                 switch(funct3){
-                    is(B"000")       { branch_cond :=  rs1_eq_rs2 } // BEQ
-                    is(B"001")       { branch_cond := !rs1_eq_rs2 } // BNE
+                    is(B"000")       { branch_cond :=  op1_eq_op2 } // BEQ
+                    is(B"001")       { branch_cond := !op1_eq_op2 } // BNE
                     is(B"100",B"110"){ branch_cond :=  op1_lt_op2 } // BLT, BLTU
                     is(B"101",B"111"){ branch_cond := !op1_lt_op2 } // BGE, BGEU
                 }
@@ -178,7 +176,7 @@ class Execute(config: MR1Config) extends Component {
                 pc_jump_valid := True
                 take_jump     := True
 
-                pc_op1   := S(rs1).resize(config.pcSize)
+                pc_op1   := op1.resize(config.pcSize)
                 clr_lsb  := True
                 rd_wr    := True
             }
@@ -203,7 +201,7 @@ class Execute(config: MR1Config) extends Component {
         val rd_wr    = False
         val size     = funct3(1 downto 0)
 
-        val lsu_addr = U(S(rs1) + imm)
+        val lsu_addr = U(op1 + imm)
 
         io.data_req.valid   := False
         io.data_req.addr    := lsu_addr.resize(config.dataAddrSize)

@@ -306,3 +306,15 @@ Reduce PC to 12 bits
 
     Critical path execute.rs2 to instr RAM
 
+Use ALU\_ADD for LSU calc
+
+* Speed: 82MHz vs 99MHz
+
+* Area:
+
+    Logic elements: 1298 vs 1582
+
+    Registers: 323 vs 495
+
+    Critical path <less than> to fetch to RAM (BLT)
+

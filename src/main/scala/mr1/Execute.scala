@@ -42,11 +42,10 @@ class Execute(config: MR1Config) extends Component {
     funct3          := instr(14 downto 12)
     rd_addr         := U(instr(11 downto 7))
 
-    val op1 = S(io.d2e.op1)
-    val op2 = S(io.d2e.op2)
-    val rs2 = io.d2e.rs2
-
-    val imm = io.d2e.imm
+    val op1   = S(io.d2e.op1)
+    val op2   = S(io.d2e.op2)
+    val rs2   = io.d2e.rs2_b_imm
+    val b_imm = S(io.d2e.rs2_b_imm(12 downto 1) ## False)
 
     val alu = new Area {
         val rd_wr    = False
@@ -142,9 +141,14 @@ class Execute(config: MR1Config) extends Component {
 
         val clr_lsb = False
 
-        val pc       = io.d2e.pc
-        val pc_op1   = S(pc)
+        val pc       = UInt(config.pcSize bits)
+        val pc_taken = UInt(config.pcSize bits)
+
+        pc          := io.d2e.pc
+        pc_taken    := alu.rd_wdata_alu_add
+
         val pc_plus4 = pc + 4
+
 
         val rd_wr    = False
         val rd_wdata = pc_plus4.resize(32)
@@ -164,6 +168,7 @@ class Execute(config: MR1Config) extends Component {
                 }
 
                 pc_jump_valid := True
+                pc_taken      := U(S(pc) + b_imm)
                 take_jump     := branch_cond
             }
             is(InstrType.JAL){
@@ -176,15 +181,14 @@ class Execute(config: MR1Config) extends Component {
                 pc_jump_valid := True
                 take_jump     := True
 
-                pc_op1   := op1.resize(config.pcSize)
                 clr_lsb  := True
                 rd_wr    := True
             }
         }
 
         // Clear LSB for JALR ops
-        pc_jump := (take_jump ? U(pc_op1 + imm.resize(config.pcSize)) |
-                                pc_plus4                              ) & ~(U(clr_lsb).resize(config.pcSize))
+        pc_jump := (take_jump ? pc_taken  |
+                                pc_plus4  ) & ~(U(clr_lsb).resize(config.pcSize))
 
     }
 
@@ -201,7 +205,8 @@ class Execute(config: MR1Config) extends Component {
         val rd_wr    = False
         val size     = funct3(1 downto 0)
 
-        val lsu_addr = U(op1 + imm)
+        val lsu_addr = UInt(32 bits)
+        lsu_addr    := alu.rd_wdata_alu_add
 
         io.data_req.valid   := False
         io.data_req.addr    := lsu_addr.resize(config.dataAddrSize)

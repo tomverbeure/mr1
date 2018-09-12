@@ -16,10 +16,9 @@ case class Decode2Execute(config: MR1Config) extends Bundle {
     val pc              = UInt(config.pcSize bits)
     val instr           = Bits(32 bits)
     val decoded_instr   = DecodedInstr(config)
-    val imm             = SInt(21 bits)
     val op1             = Bits(32 bits)
     val op2             = Bits(32 bits)
-    val rs2             = Bits(32 bits)
+    val rs2_b_imm       = Bits(32 bits)
     val rd_valid        = Bool
 
     val rvfi = if (config.hasFormal) RVFI(config) else null
@@ -106,6 +105,7 @@ class Decode(config: MR1Config) extends Component {
             is(Opcodes.JAL){
                 decoded_instr.itype     := InstrType.JAL
                 decoded_instr.iformat   := InstrFormat.J
+                op1_kind                := Op1Kind.Pc
             }
             is(Opcodes.JALR){
                 when(funct3 === B"000") {
@@ -223,14 +223,6 @@ class Decode(config: MR1Config) extends Component {
     val j_imm = S(B((10 downto 0) -> instr(31)) ## instr(31) ## instr(19 downto 12) ## instr(20) ## instr(30 downto 21) ## "0")
     val u_imm = S(instr(31 downto 12) ## B((11 downto 0) -> false))
 
-    val imm = decode.decoded_instr.iformat.mux(
-                InstrFormat.I -> i_imm(20 downto 0),
-                InstrFormat.S -> s_imm(20 downto 0),
-                InstrFormat.B -> b_imm(20 downto 0),
-                InstrFormat.J -> j_imm(20 downto 0),
-                default       -> i_imm(20 downto 0)
-                )
-
     io.d2f.pc_jump_valid <> io.e2d.pc_jump_valid
     io.d2f.pc_jump       <> io.e2d.pc_jump
 
@@ -261,12 +253,20 @@ class Decode(config: MR1Config) extends Component {
     op2 := decode.decoded_instr.iformat.mux(
             InstrFormat.R       -> io.r2rr.rs2_data,
             InstrFormat.I       -> B(i_imm),
+            InstrFormat.S       -> B(s_imm),
             InstrFormat.U       -> B(u_imm),
+            InstrFormat.J       -> B(j_imm),
             InstrFormat.Shamt   -> io.r2rr.rs2_data(31 downto 5) ## instr(24 downto 20),
             default             -> io.r2rr.rs2_data
             )
 
-    io.d2f.stall := io.e2d.stall
+    val rs2_b_imm = Bits(32 bits)
+    rs2_b_imm := decode.decoded_instr.iformat.mux(
+            InstrFormat.B       -> io.r2rr.rs2_data(31 downto 13) ## b_imm(12 downto 1) ## io.r2rr.rs2_data(0),
+            default             -> io.r2rr.rs2_data
+            )
+
+    io.d2f.stall         := io.e2d.stall
     io.d2f.rd_addr_valid := rd_valid
     io.d2f.rd_addr       := decode.rd_addr
 
@@ -307,10 +307,9 @@ class Decode(config: MR1Config) extends Component {
         d2e_nxt.pc              := io.f2d.pc
         d2e_nxt.decoded_instr   := decode.decoded_instr
         d2e_nxt.instr           := instr
-        d2e_nxt.imm             := imm
         d2e_nxt.op1             := op1
         d2e_nxt.op2             := op2
-        d2e_nxt.rs2             := io.r2rr.rs2_data
+        d2e_nxt.rs2_b_imm       := rs2_b_imm
         d2e_nxt.rd_valid        := rd_valid
 
         if (config.hasFormal)

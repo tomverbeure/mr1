@@ -306,9 +306,9 @@ Reduce PC to 12 bits
 
     Critical path execute.rs2 to instr RAM
 
-Use ALU\_ADD for LSU calc
+Use ALU\_ADD for LSU calc and part of jump
 
-* Speed: 82MHz vs 99MHz
+* Speed: 76MHz vs 99MHz
 
 * Area:
 

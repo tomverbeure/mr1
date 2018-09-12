@@ -318,3 +318,15 @@ Use ALU\_ADD for LSU calc and part of jump
 
     Critical path <less than> to fetch to RAM (BLT)
 
+Jump doesn't use ALU\_ADD anymore
+
+* Speed: 80MHz vs 99MHz
+
+* Area:
+
+    Logic elements: 1338 vs 1582
+
+    Registers: 323 vs 495
+
+    Critical path <less than> to fetch to RAM (BLT)
+

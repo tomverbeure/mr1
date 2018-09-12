@@ -44,8 +44,8 @@ class Execute(config: MR1Config) extends Component {
 
     val op1   = S(io.d2e.op1)
     val op2   = S(io.d2e.op2)
-    val rs2   = io.d2e.rs2_b_imm
-    val b_imm = S(io.d2e.rs2_b_imm(12 downto 1) ## False)
+    val rs2   = io.d2e.rs2_imm
+    val imm   = S(io.d2e.rs2_imm(20 downto 0))
 
     val alu = new Area {
         val rd_wr    = False
@@ -142,10 +142,10 @@ class Execute(config: MR1Config) extends Component {
         val clr_lsb = False
 
         val pc       = UInt(config.pcSize bits)
-        val pc_taken = UInt(config.pcSize bits)
+        val pc_op1   = SInt(config.pcSize bits)
 
         pc          := io.d2e.pc
-        pc_taken    := alu.rd_wdata_alu_add
+        pc_op1      := S(pc)
 
         val pc_plus4 = pc + 4
 
@@ -168,7 +168,6 @@ class Execute(config: MR1Config) extends Component {
                 }
 
                 pc_jump_valid := True
-                pc_taken      := U(S(pc) + b_imm)
                 take_jump     := branch_cond
             }
             is(InstrType.JAL){
@@ -179,6 +178,7 @@ class Execute(config: MR1Config) extends Component {
             }
             is(InstrType.JALR){
                 pc_jump_valid := True
+                pc_op1        := op1
                 take_jump     := True
 
                 clr_lsb  := True
@@ -187,8 +187,8 @@ class Execute(config: MR1Config) extends Component {
         }
 
         // Clear LSB for JALR ops
-        pc_jump := (take_jump ? pc_taken  |
-                                pc_plus4  ) & ~(U(clr_lsb).resize(config.pcSize))
+        pc_jump := (take_jump ? U(pc_op1 + imm)  |
+                                pc_plus4         ) & ~(U(clr_lsb).resize(config.pcSize))
 
     }
 

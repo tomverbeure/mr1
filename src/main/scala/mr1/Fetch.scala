@@ -57,7 +57,7 @@ class Fetch(config: MR1Config) extends Component {
     val instr_is_jump = (opcode === Opcodes.JAL)  ||
                         (opcode === Opcodes.JALR) ||
                         (opcode === Opcodes.B)    ||
-                        (opcode === Opcodes.SYS)
+                        ((opcode === Opcodes.SYS) && False)
     val instr_is_jump_r = Bool
 
 
@@ -191,7 +191,7 @@ class Fetch(config: MR1Config) extends Component {
     }
     .elsewhen(!down_stall){
         f2d_nxt.valid := False
-        if (true){
+        if (false){
             // This makes debugging a bit easier, but it costs a few gates and timing
             f2d_nxt.pc    := 0
             f2d_nxt.instr := 0

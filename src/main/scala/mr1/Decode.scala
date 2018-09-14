@@ -223,8 +223,8 @@ class Decode(config: MR1Config) extends Component {
     val j_imm = S(B((10 downto 0) -> instr(31)) ## instr(31) ## instr(19 downto 12) ## instr(20) ## instr(30 downto 21) ## "0")
     val u_imm = S(instr(31 downto 12) ## B((11 downto 0) -> false))
 
-    io.d2f.pc_jump_valid <> io.e2d.pc_jump_valid
-    io.d2f.pc_jump       <> io.e2d.pc_jump
+    io.d2f.pc_jump_valid := io.e2d.pc_jump_valid
+    io.d2f.pc_jump       := io.e2d.pc_jump
 
     val rs1_valid =  (decode.decoded_instr.iformat === InstrFormat.R) ||
                      (decode.decoded_instr.iformat === InstrFormat.I) ||
@@ -268,7 +268,7 @@ class Decode(config: MR1Config) extends Component {
             )
 
     io.d2f.stall         := io.e2d.stall
-    io.d2f.rd_addr_valid := rd_valid
+    io.d2f.rd_addr_valid := decode_end && rd_valid
     io.d2f.rd_addr       := decode.rd_addr
 
     val formal = if (config.hasFormal) new Area {

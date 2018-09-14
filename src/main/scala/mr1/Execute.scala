@@ -30,23 +30,21 @@ class Execute(config: MR1Config) extends Component {
     val exe_end   = io.d2e.valid && !io.e2d.stall
 
     val itype           = InstrType()
-    val sub             = Bool
-    val unsigned        = Bool
     val instr           = Bits(32 bits)
     val funct3          = Bits(3 bits)
     val rd_addr         = UInt(5 bits)
     val rd_addr_valid   = Bool
 
     itype           := io.d2e.decoded_instr.itype
-    sub             := io.d2e.decoded_instr.sub
-    unsigned        := io.d2e.decoded_instr.unsigned
     instr           := io.d2e.instr
     funct3          := instr(14 downto 12)
     rd_addr         := U(instr(11 downto 7))
 
-    val op1         = S(io.d2e.op1)
-    val op2         = S(io.d2e.op2)
+    val op1_33      = S(io.d2e.op1_33)
+    val op2_33      = S(io.d2e.op2_33)
     val op1_op2_lsb = S(io.d2e.op1_op2_lsb)
+    val op1         = S(io.d2e.op1_33)(31 downto 0)
+    val op2         = S(io.d2e.op2_33)(31 downto 0)
     val rs2         = io.d2e.rs2_imm
     val imm         = S(io.d2e.rs2_imm(20 downto 0))
 
@@ -56,12 +54,11 @@ class Execute(config: MR1Config) extends Component {
 
         // Decode stage already op1 + op2 for lower 8 bits. Now do the upper part.
         val op_cin = op1_op2_lsb(8)
-        val rd_wdata_alu_add = U((op1(31 downto 8) @@ op_cin) + (op2(31 downto 8) @@ op_cin))(24 downto 1) @@ U(op1_op2_lsb(7 downto 0))
 
-        val op1_33 = unsigned ? S(U(op1).resize(33)) | op1.resize(33)
-        val op2_33 = unsigned ? S(U(op2).resize(33)) | op2.resize(33)
+        val alu_add_33 = U((op1_33(32 downto 8) @@ op_cin) + (op2_33(32 downto 8) @@ op_cin))(25 downto 1) @@ U(op1_op2_lsb(7 downto 0))
 
-        val rd_wdata_alu_lt  = U(op1_33 < op2_33).resize(32)
+        val rd_wdata_alu_add = alu_add_33(31 downto 0)
+        val rd_wdata_alu_lt  = U(alu_add_33(32)).resize(32)
 
         rd_wdata := rd_wdata_alu_add
 

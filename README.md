@@ -330,3 +330,15 @@ Jump doesn't use ALU\_ADD anymore
 
     Critical path <less than> to fetch to RAM (BLT)
 
+LT merged with ALU\_ADD. ALU\_ADD split into Decoder
+
+* Speed: 84MHz vs 99MHz
+
+* Area:
+
+    Logic elements: 1314 vs 1582
+
+    Registers: 333 vs 495
+
+    Critical path from instr RAM to pc.
+

@@ -87,8 +87,8 @@ class Decode(config: MR1Config) extends Component {
         decoded_instr.iformat       := InstrFormat.Undef
         decoded_instr.itype         := InstrType.Undef
 
-        sub           := False
-        unsigned      := False
+        val sub           = False
+        val unsigned      = False
 
         val op1_kind = Op1Kind()
         op1_kind := Op1Kind.Rs1
@@ -179,7 +179,7 @@ class Decode(config: MR1Config) extends Component {
                         // SLT, SLTU
                         decoded_instr.itype         := InstrType.ALU
                         decoded_instr.iformat       := InstrFormat.R
-                        decoded_instr.unsigned      := funct3(0)
+                        unsigned                    := funct3(0)
                         sub                         := True
                     }
                     is(B"0000001_000", B"0000001_001", B"0000001_010", B"0000001_011"){
@@ -252,8 +252,8 @@ class Decode(config: MR1Config) extends Component {
                      (decode.decoded_instr.iformat === InstrFormat.J) ||
                      (decode.decoded_instr.iformat === InstrFormat.Shamt)
 
-    val rs1_33 = decode.decoded_instr.unsigned ? B(U(io.r2rr.rs1_data).resize(33)) | B(S(io.r2rr.rs1_data).resize(33))
-    val rs2_33 = decode.decoded_instr.unsigned ? B(U(io.r2rr.rs2_data).resize(33)) | B(S(io.r2rr.rs2_data).resize(33))
+    val rs1_33 = decode.unsigned ? B(U(io.r2rr.rs1_data).resize(33)) | B(S(io.r2rr.rs1_data).resize(33))
+    val rs2_33 = decode.unsigned ? B(U(io.r2rr.rs2_data).resize(33)) | B(S(io.r2rr.rs2_data).resize(33))
 
     val op1_33 = Bits(33 bits)
     op1_33 := decode.op1_kind.mux(

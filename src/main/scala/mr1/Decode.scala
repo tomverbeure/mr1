@@ -7,7 +7,8 @@ case class DecodedInstr(config: MR1Config) extends Bundle {
 
     val iformat      = InstrFormat()
     val itype        = InstrType()
-    val sub_unsigned = Bool
+    val sub          = Bool
+    val unsigned     = Bool
 }
 
 case class Decode2Execute(config: MR1Config) extends Bundle {
@@ -87,7 +88,8 @@ class Decode(config: MR1Config) extends Component {
 
         decoded_instr.iformat       := InstrFormat.Undef
         decoded_instr.itype         := InstrType.Undef
-        decoded_instr.sub_unsigned  := False
+        decoded_instr.sub           := False
+        decoded_instr.unsigned      := False
 
         val op1_kind = Op1Kind()
         op1_kind := Op1Kind.Rs1
@@ -118,7 +120,7 @@ class Decode(config: MR1Config) extends Component {
                 when(funct3 =/= B"010" && funct3 =/= B"011") {
                     decoded_instr.itype         := InstrType.B
                     decoded_instr.iformat       := InstrFormat.B
-                    decoded_instr.sub_unsigned  := (funct3(2 downto 1) === B"11")
+                    decoded_instr.unsigned      := (funct3(2 downto 1) === B"11")
                 }
             }
             is(Opcodes.L){
@@ -142,7 +144,7 @@ class Decode(config: MR1Config) extends Component {
                     // ALU_I: SLTI, SLTIU, XORI, ORI, ANDI
                     decoded_instr.itype         := InstrType.ALU
                     decoded_instr.iformat       := InstrFormat.I
-                    decoded_instr.sub_unsigned  := funct3(2 downto 0) === B"011"
+                    decoded_instr.unsigned      := funct3(2 downto 0) === B"011"
                 }.elsewhen( (funct7 ## funct3) === B"0000000001" || (funct7 ## funct3) === B"0000000101" || (funct7 ## funct3) === B"0100000101") {
                     // SHIFT_I: SLLI, SRLI, SRAI
                     decoded_instr.itype     := InstrType.SHIFT
@@ -155,7 +157,7 @@ class Decode(config: MR1Config) extends Component {
                         // ADD, SUB
                         decoded_instr.itype         := InstrType.ALU_ADD
                         decoded_instr.iformat       := InstrFormat.R
-                        decoded_instr.sub_unsigned  := funct7(5)
+                        decoded_instr.sub           := funct7(5)
                     }
                     is(B"0000000_100", B"0000000_110", B"0000000_111"){
                         // ADD, SUB, XOR, OR, AND
@@ -171,7 +173,7 @@ class Decode(config: MR1Config) extends Component {
                         // SLT, SLTU
                         decoded_instr.itype         := InstrType.ALU
                         decoded_instr.iformat       := InstrFormat.R
-                        decoded_instr.sub_unsigned  := funct3(0)
+                        decoded_instr.unsigned      := funct3(0)
                     }
                     is(B"0000001_000", B"0000001_001", B"0000001_010", B"0000001_011"){
                         // MUL
@@ -250,12 +252,11 @@ class Decode(config: MR1Config) extends Component {
         Op1Kind.Pc      -> B(io.f2d.pc).resize(32)
     )
 
-    val sub = decode.decoded_instr.sub_unsigned 
+    val sub = decode.decoded_instr.sub
 
     val op2 = Bits(32 bits)
     op2 := decode.decoded_instr.iformat.mux(
             InstrFormat.R       -> (sub ? ~io.r2rr.rs2_data | io.r2rr.rs2_data),
-//            InstrFormat.R       -> io.r2rr.rs2_data,
             InstrFormat.I       -> B(i_imm),
             InstrFormat.S       -> B(s_imm),
             InstrFormat.U       -> B(u_imm),

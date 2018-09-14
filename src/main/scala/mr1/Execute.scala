@@ -42,17 +42,18 @@ class Execute(config: MR1Config) extends Component {
     funct3          := instr(14 downto 12)
     rd_addr         := U(instr(11 downto 7))
 
-    val op1   = S(io.d2e.op1)
-    val op2   = S(io.d2e.op2)
-    val rs2   = io.d2e.rs2_imm
-    val imm   = S(io.d2e.rs2_imm(20 downto 0))
+    val op1         = S(io.d2e.op1)
+    val op2         = S(io.d2e.op2)
+    val op1_op2_lsb = S(io.d2e.op1_op2_lsb)
+    val rs2         = io.d2e.rs2_imm
+    val imm         = S(io.d2e.rs2_imm(20 downto 0))
 
     val alu = new Area {
         val rd_wr    = False
         val rd_wdata = UInt(32 bits)
 
-        val rd_wdata_alu_add = U( (sub_unsigned ? ( op1 @@ S"1") | (op1 @@ S"0") ) +
-                                  (sub_unsigned ? (~op2 @@ S"1") | (op2 @@ S"0") ))(32 downto 1)
+        val op_cin = op1_op2_lsb(8)
+        val rd_wdata_alu_add = U((op1(31 downto 8) @@ op_cin) + (op2(31 downto 8) @@ op_cin))(24 downto 1) @@ U(op1_op2_lsb(7 downto 0))
 
         val op1_33 = sub_unsigned ? S(U(op1).resize(33)) | op1.resize(33)
         val op2_33 = sub_unsigned ? S(U(op2).resize(33)) | op2.resize(33)

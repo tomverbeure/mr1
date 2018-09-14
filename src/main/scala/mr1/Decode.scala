@@ -18,6 +18,7 @@ case class Decode2Execute(config: MR1Config) extends Bundle {
     val decoded_instr   = DecodedInstr(config)
     val op1             = Bits(32 bits)
     val op2             = Bits(32 bits)
+    val op1_op2_lsb     = Bits(9 bits)
     val rs2_imm         = Bits(32 bits)
     val rd_valid        = Bool
 
@@ -55,7 +56,7 @@ class Decode(config: MR1Config) extends Component {
 
         val r2rr        = in(RegFile2ReadResult(config))
 
-        val d2e         = out(Reg(Decode2Execute(config)) init)
+        val d2e         = out(Reg(Decode2Execute(config)) init).addAttribute("keep")
         val e2d         = in(Execute2Decode(config))
     }
 
@@ -249,15 +250,20 @@ class Decode(config: MR1Config) extends Component {
         Op1Kind.Pc      -> B(io.f2d.pc).resize(32)
     )
 
+    val sub = decode.decoded_instr.sub_unsigned 
+
     val op2 = Bits(32 bits)
     op2 := decode.decoded_instr.iformat.mux(
-            InstrFormat.R       -> io.r2rr.rs2_data,
+            InstrFormat.R       -> (sub ? ~io.r2rr.rs2_data | io.r2rr.rs2_data),
+//            InstrFormat.R       -> io.r2rr.rs2_data,
             InstrFormat.I       -> B(i_imm),
             InstrFormat.S       -> B(s_imm),
             InstrFormat.U       -> B(u_imm),
             InstrFormat.Shamt   -> io.r2rr.rs2_data(31 downto 5) ## instr(24 downto 20),
             default             -> io.r2rr.rs2_data
             )
+
+    val op1_op2_lsb = B((U(False ## op1(7 downto 0) ## sub) + U(False ## op2(7 downto 0) ## sub)))(9 downto 1)
 
     val rs2_imm = Bits(32 bits)
     rs2_imm := decode.decoded_instr.iformat.mux(
@@ -310,6 +316,7 @@ class Decode(config: MR1Config) extends Component {
         d2e_nxt.instr           := instr
         d2e_nxt.op1             := op1
         d2e_nxt.op2             := op2
+        d2e_nxt.op1_op2_lsb     := op1_op2_lsb
         d2e_nxt.rs2_imm         := rs2_imm
         d2e_nxt.rd_valid        := rd_valid
 

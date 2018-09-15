@@ -38,13 +38,13 @@ class Execute(config: MR1Config) extends Component {
 
         val rd_update   = out(RegRdUpdate(config))
 
-        val e2w         = out(Reg(Execute2Writeback(config)))
+        val e2w         = out(Reg(Execute2Writeback(config)) init)
         val w2e         = in(Writeback2Execute(config))
 
         val data_req    = DataReqIntfc(config)
 
-        val d2e_rvfi    = if (config.hasFormal) in(     RVFI(config)      ) else null
-        val e2w_rvfi    = if (config.hasFormal) out(Reg(RVFI(config)) init) else null
+        val d2e_rvfi    = if (config.hasFormal) in(     RVFI(config)      )                        else null
+        val e2w_rvfi    = if (config.hasFormal) out(Reg(RVFI(config)) init).setName("io_e2w_rvfi") else null
     }
 
     val e2d_stall_d = RegNext(io.e2d.stall, False)

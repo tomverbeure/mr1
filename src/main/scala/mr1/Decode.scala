@@ -28,9 +28,6 @@ case class Execute2Decode(config: MR1Config) extends Bundle {
 
     val pc_jump_valid = Bool                // FIXME: This is probably redundant with stall, but let's leave it for now.
     val pc_jump       = UInt(config.pcSize bits)
-
-    val rd_addr_valid = Bool
-    val rd_addr       = UInt(5 bits)
 }
 
 class Decode(config: MR1Config) extends Component {

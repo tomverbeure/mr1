@@ -3,6 +3,24 @@ package mr1
 
 import spinal.core._
 
+case class Execute2Writeback(config: MR1Config) extends Bundle {
+
+    val valid           = Bool
+    val ld_active       = Bool
+    val ld_addr_lsb     = UInt(2 bits)
+
+    val rd_wr           = Bool
+    val rd_waddr        = UInt(5 bits)
+    val rd_wdata        = Bits(32 bits)
+
+    val rvfi = if (config.hasFormal) RVFI(config) else null
+
+    def init() : Execute2Writeback = {
+        valid init(False)
+        if (config.hasFormal) rvfi init()
+        this
+    }
+}
 
 class Execute(config: MR1Config) extends Component {
 
@@ -16,12 +34,9 @@ class Execute(config: MR1Config) extends Component {
         val e2d         = out(Execute2Decode(config))
         val e2f         = out(Execute2Fetch(config))
 
-        val w2r         = out(Write2RegFile(config))
+        val e2w         = out(Execute2Writeback(config))
 
         val data_req    = DataReqIntfc(config)
-        val data_rsp    = DataRspIntfc(config)
-
-        val rvfi        = if (config.hasFormal) out(Reg(RVFI(config)) init) else null
     }
 
     val e2d_stall_d = RegNext(io.e2d.stall, False)
@@ -194,12 +209,6 @@ class Execute(config: MR1Config) extends Component {
     }
 
     val lsu = new Area {
-        object LsuState extends SpinalEnum {
-            val Idle            = newElement()
-            val WaitRsp         = newElement()
-        }
-
-        val cur_state = Reg(LsuState()) init(LsuState.Idle)
 
         val lsu_stall = False
 
@@ -209,61 +218,23 @@ class Execute(config: MR1Config) extends Component {
         val lsu_addr = UInt(32 bits)
         lsu_addr    := alu.rd_wdata_alu_add
 
-        io.data_req.valid   := False
+        io.data_req.valid   := io.d2e.valid && (itype === InstrType.L || itype === InstrType.S)
         io.data_req.addr    := lsu_addr.resize(config.dataAddrSize)
-        io.data_req.wr      := False
+        io.data_req.wr      := (itype === InstrType.S)
         io.data_req.size    := size
         io.data_req.data    := size.mux(
                                 B"00"   -> rs2( 7 downto 0) ## rs2( 7 downto 0) ## rs2( 7 downto 0) ## rs2( 7 downto 0),
                                 B"01"   -> rs2(15 downto 0) ## rs2(15 downto 0),
                                 default -> rs2)
 
-        switch(cur_state){
-            is(LsuState.Idle){
-                when(io.d2e.valid && (itype === InstrType.L || itype === InstrType.S)){
-                    io.data_req.valid   := True
-                    io.data_req.wr      := (itype === InstrType.S)
-
-                    lsu_stall := True
-
-                    when(io.data_req.ready){
-                        when(itype === InstrType.S){
-                            lsu_stall := False
-                        }
-                        .otherwise{
-                            cur_state := LsuState.WaitRsp
-                        }
-                    }
-                }
-            }
-            is(LsuState.WaitRsp){
-                lsu_stall := True
-
-                when(io.data_rsp.valid){
-                    lsu_stall := False
-                    rd_wr     := True
-
-                    cur_state := LsuState.Idle
-                }
-            }
-        }
-
-        val rsp_data_shift_adj = Bits(32 bits)
-        rsp_data_shift_adj := io.data_rsp.data >> (lsu_addr(1 downto 0) * 8)
-
-        val rd_wdata = ( (funct3 === B"000") ? B(S(rsp_data_shift_adj( 7 downto 0)).resize(32)) |
-                       ( (funct3 === B"100") ? B(U(rsp_data_shift_adj( 7 downto 0)).resize(32)) |
-                       ( (funct3 === B"001") ? B(S(rsp_data_shift_adj(15 downto 0)).resize(32)) |
-                       ( (funct3 === B"101") ? B(U(rsp_data_shift_adj(15 downto 0)).resize(32)) |
-                                                   rsp_data_shift_adj))))
+        lsu_stall := !io.data_req.ready
     }
 
-    val rd_wr    = io.d2e.valid && (alu.rd_wr | jump.rd_wr | shift.rd_wr | lsu.rd_wr) && (rd_addr =/= 0)
+    val rd_wr    = io.d2e.valid && (alu.rd_wr | jump.rd_wr | shift.rd_wr) && (rd_addr =/= 0)
     val rd_waddr = rd_wr ? rd_addr | U"5'd0"
     val rd_wdata = B((alu.rd_wdata.range   -> alu.rd_wr))   & B(alu.rd_wdata)   |
                    B((jump.rd_wdata.range  -> jump.rd_wr))  & B(jump.rd_wdata)  |
-                   B((shift.rd_wdata.range -> shift.rd_wr)) & B(shift.rd_wdata) |
-                   B((lsu.rd_wdata.range   -> lsu.rd_wr))   & B(lsu.rd_wdata)
+                   B((shift.rd_wdata.range -> shift.rd_wr)) & B(shift.rd_wdata)
 
     io.e2d.stall         := lsu.lsu_stall
     io.e2d.pc_jump_valid := io.d2e.valid && jump.pc_jump_valid
@@ -276,66 +247,61 @@ class Execute(config: MR1Config) extends Component {
     io.e2f.rd_addr       := rd_addr
 
     // Write to RegFile
-    io.w2r.rd_wr        := rd_wr
-    io.w2r.rd_wr_addr   := rd_waddr
-    io.w2r.rd_wr_data   := rd_wdata
+    io.e2w.rd_wr        := rd_wr
+    io.e2w.rd_wr_addr   := rd_waddr
+    io.e2w.rd_wr_data   := rd_wdata
 
     val formal = if (config.hasFormal) new Area {
 
-        io.rvfi.valid := exe_end
+        io.e2w.rvfi.valid := exe_end
 
         when(exe_start){
-            io.rvfi.order     := io.d2e.rvfi.order
-            io.rvfi.pc_rdata  := io.d2e.rvfi.pc_rdata
-            io.rvfi.insn      := io.d2e.rvfi.insn
-            io.rvfi.trap      := io.d2e.rvfi.trap
-            io.rvfi.halt      := io.d2e.rvfi.halt
-            io.rvfi.intr      := io.d2e.rvfi.intr
+            io.e2w.rvfi.order     := io.d2e.rvfi.order
+            io.e2w.rvfi.pc_rdata  := io.d2e.rvfi.pc_rdata
+            io.e2w.rvfi.insn      := io.d2e.rvfi.insn
+            io.e2w.rvfi.trap      := io.d2e.rvfi.trap
+            io.e2w.rvfi.halt      := io.d2e.rvfi.halt
+            io.e2w.rvfi.intr      := io.d2e.rvfi.intr
 
-            io.rvfi.rs1_addr  := io.d2e.rvfi.rs1_addr
-            io.rvfi.rs2_addr  := io.d2e.rvfi.rs2_addr
-            io.rvfi.rd_addr   := io.d2e.rvfi.rd_addr
+            io.e2w.rvfi.rs1_addr  := io.d2e.rvfi.rs1_addr
+            io.e2w.rvfi.rs2_addr  := io.d2e.rvfi.rs2_addr
+            io.e2w.rvfi.rd_addr   := io.d2e.rvfi.rd_addr
 
-            io.rvfi.rs1_rdata := io.d2e.rvfi.rs1_rdata
-            io.rvfi.rs2_rdata := io.d2e.rvfi.rs2_rdata
-            io.rvfi.rd_wdata  := 0
+            io.e2w.rvfi.rs1_rdata := io.d2e.rvfi.rs1_rdata
+            io.e2w.rvfi.rs2_rdata := io.d2e.rvfi.rs2_rdata
+            io.e2w.rvfi.rd_wdata  := 0
 
-            io.rvfi.mem_addr  := 0
-            io.rvfi.mem_rmask := 0
-            io.rvfi.mem_rdata := 0
-            io.rvfi.mem_wmask := 0
-            io.rvfi.mem_wdata := 0
-        }
-
-        when(rd_wr){
-            io.rvfi.rd_addr   := rd_waddr
-            io.rvfi.rd_wdata  := rd_wdata
+            io.e2w.rvfi.mem_addr  := 0
+            io.e2w.rvfi.mem_rmask := 0
+            io.e2w.rvfi.mem_rdata := 0
+            io.e2w.rvfi.mem_wmask := 0
+            io.e2w.rvfi.mem_wdata := 0
         }
 
         when(exe_end){
             when(io.e2d.pc_jump_valid){
-                io.rvfi.pc_wdata  := io.e2d.pc_jump.resize(32)
+                io.e2w.rvfi.pc_wdata  := io.e2d.pc_jump.resize(32)
             }
             .otherwise{
-                io.rvfi.pc_wdata  := io.d2e.rvfi.pc_rdata + 4
+                io.e2w.rvfi.pc_wdata  := io.d2e.rvfi.pc_rdata + 4
             }
         }
 
         switch(itype){
             is(InstrType.B, InstrType.JAL, InstrType.JALR){
                 when(exe_end && io.e2d.pc_jump_valid && io.e2d.pc_jump(1 downto 0) =/= "00"){
-                    io.rvfi.trap := True
+                    io.e2w.rvfi.trap := True
                 }
             }
             is(InstrType.L){
                 when(io.data_req.valid && io.data_req.ready){
-                    io.rvfi.mem_addr  := lsu.lsu_addr(31 downto 2) @@ U"00"
-                    io.rvfi.mem_rmask := ((io.data_req.size === B"00") ? B"0001" |
-                                         ((io.data_req.size === B"01") ? B"0011" |
-                                                                         B"1111")) |<< lsu.lsu_addr(1 downto 0)
+                    io.e2w.rvfi.mem_addr  := lsu.lsu_addr(31 downto 2) @@ U"00"
+                    io.e2w.rvfi.mem_rmask := ((io.data_req.size === B"00") ? B"0001" |
+                                             ((io.data_req.size === B"01") ? B"0011" |
+                                                                             B"1111")) |<< lsu.lsu_addr(1 downto 0)
 
-                    io.rvfi.trap      := (io.data_req.size === B"01" && lsu.lsu_addr(0)) |
-                                         (io.data_req.size === B"10" && lsu.lsu_addr(1 downto 0) =/= "00")
+                    io.e2w.rvfi.trap      := (io.data_req.size === B"01" && lsu.lsu_addr(0)) |
+                                             (io.data_req.size === B"10" && lsu.lsu_addr(1 downto 0) =/= "00")
                 }
 
                 when(io.data_rsp.valid){

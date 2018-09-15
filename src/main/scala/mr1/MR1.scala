@@ -26,6 +26,13 @@ case class MR1Config(
     def hasFormal   = supportFormal
 }
 
+case class RegRdUpdate(config) {
+    val rd_waddr_valid  = Bool
+    val rd_waddr        = UInt(4 downto 0)
+    val rd_wdata_valid  = Bool
+    val rd_wdata        = Bits(31 downto 0)
+}
+
 case class RVFI(config: MR1Config) extends Bundle {
 
     val valid       = Bool

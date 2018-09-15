@@ -34,6 +34,8 @@ class Execute(config: MR1Config) extends Component {
         val e2d         = out(Execute2Decode(config))
         val e2f         = out(Execute2Fetch(config))
 
+        val rd_update   = RegRdUpdate(config)
+
         val e2w         = out(Execute2Writeback(config))
 
         val data_req    = DataReqIntfc(config)
@@ -240,11 +242,10 @@ class Execute(config: MR1Config) extends Component {
     io.e2d.pc_jump_valid := io.d2e.valid && jump.pc_jump_valid
     io.e2d.pc_jump       := jump.pc_jump
 
-    io.e2d.rd_addr_valid := io.d2e.valid && io.d2e.rd_valid
-    io.e2d.rd_addr       := rd_addr
-
-    io.e2f.rd_addr_valid := io.d2e.valid && io.d2e.rd_valid
-    io.e2f.rd_addr       := rd_addr
+    io.rd_update.rd_waddr_valid := io.d2e.valid
+    io.rd_update.rd_waddr       := rd_addr
+    io.rd_update.rd_wdata_valid := rd_wr
+    io.rd_update.rd_wdata       := rd_wdata
 
     // Write to RegFile
     io.e2w.rd_wr        := rd_wr

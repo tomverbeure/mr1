@@ -14,6 +14,9 @@ lazy val root = (project in file(".")).
 lazy val spinalHdlSim = ProjectRef(file("/home/tom/projects/SpinalHDL"), "SpinalHDL-sim")
 lazy val spinalHdlCore = ProjectRef(file("/home/tom/projects/SpinalHDL"), "SpinalHDL-core")
 lazy val spinalHdlLib = ProjectRef(file("/home/tom/projects/SpinalHDL"), "SpinalHDL-lib")
+//lazy val spinalHdlSim = ProjectRef(file("/home/tom/projects/SpinalHDL.typingArtist"), "SpinalHDL-sim")
+//lazy val spinalHdlCore = ProjectRef(file("/home/tom/projects/SpinalHDL.typingArtist"), "SpinalHDL-core")
+//lazy val spinalHdlLib = ProjectRef(file("/home/tom/projects/SpinalHDL.typingArtist"), "SpinalHDL-lib")
 
 
 addCompilerPlugin("org.scala-lang.plugins" % "scala-continuations-plugin_2.11.6" % "1.0.2")

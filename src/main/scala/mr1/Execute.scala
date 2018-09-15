@@ -3,6 +3,19 @@ package mr1
 
 import spinal.core._
 
+case class Execute2WriteBack(config: MRConfig) extends Bundle {
+
+    val valid       = Bool
+
+    val rvfi = if (config.hasFormal) RVFI(config) else null
+
+    def init() : Execute2WriteBack = {
+        valid init(False)
+        if (config.hasFormal) rvfi init()
+        this
+    }
+}
+
 
 class Execute(config: MR1Config) extends Component {
 

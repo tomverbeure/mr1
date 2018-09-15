@@ -35,7 +35,7 @@ class Execute(config: MR1Config) extends Component {
     val rd_addr         = UInt(5 bits)
     val rd_addr_valid   = Bool
 
-    itype           := io.d2e.decoded_instr.itype
+    itype           := io.d2e.itype
     instr           := io.d2e.instr
     funct3          := instr(14 downto 12)
     rd_addr         := U(instr(11 downto 7))

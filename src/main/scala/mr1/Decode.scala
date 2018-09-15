@@ -3,18 +3,12 @@ package mr1
 
 import spinal.core._
 
-case class DecodedInstr(config: MR1Config) extends Bundle {
-
-    val iformat      = InstrFormat()
-    val itype        = InstrType()
-}
-
 case class Decode2Execute(config: MR1Config) extends Bundle {
 
     val valid           = Bool
     val pc              = UInt(config.pcSize bits)
     val instr           = Bits(32 bits)
-    val decoded_instr   = DecodedInstr(config)
+    val itype           = InstrType()
     val op1_33          = Bits(33 bits)
     val op2_33          = Bits(33 bits)
     val op1_op2_lsb     = Bits(9 bits)
@@ -82,112 +76,113 @@ class Decode(config: MR1Config) extends Component {
         val rs1_addr    = U(instr(19 downto 15))
         val rs2_addr    = U(instr(24 downto 20))
 
-        val decoded_instr       = DecodedInstr(config)
-
-        decoded_instr.iformat       := InstrFormat.Undef
-        decoded_instr.itype         := InstrType.Undef
-
+        val itype       = InstrType()
+        val iformat     = InstrFormat()
         val sub           = False
         val unsigned      = False
+
+        iformat         := InstrFormat.Undef
+        itype           := InstrType.Undef
 
         val op1_kind = Op1Kind()
         op1_kind := Op1Kind.Rs1
 
         switch(opcode){
             is(Opcodes.LUI){
-                decoded_instr.itype     := InstrType.ALU_ADD
-                decoded_instr.iformat   := InstrFormat.U
-                op1_kind                := Op1Kind.Zero
+                itype               := InstrType.ALU_ADD
+                iformat             := InstrFormat.U
+                op1_kind            := Op1Kind.Zero
             }
             is(Opcodes.AUIPC){
-                decoded_instr.itype     := InstrType.ALU_ADD
-                decoded_instr.iformat   := InstrFormat.U
-                op1_kind                := Op1Kind.Pc
+                itype               := InstrType.ALU_ADD
+                iformat             := InstrFormat.U
+                op1_kind            := Op1Kind.Pc
             }
             is(Opcodes.JAL){
-                decoded_instr.itype     := InstrType.JAL
-                decoded_instr.iformat   := InstrFormat.J
-                op1_kind                := Op1Kind.Pc
+                itype               := InstrType.JAL
+                iformat             := InstrFormat.J
+                op1_kind            := Op1Kind.Pc
             }
             is(Opcodes.JALR){
                 when(funct3 === B"000") {
-                    decoded_instr.itype     := InstrType.JALR
-                    decoded_instr.iformat   := InstrFormat.I
+                    itype           := InstrType.JALR
+                    iformat         := InstrFormat.I
                 }
             }
             is(Opcodes.B){
                 when(funct3 =/= B"010" && funct3 =/= B"011") {
-                    decoded_instr.itype         := InstrType.B
-                    decoded_instr.iformat       := InstrFormat.B
-                    unsigned                    := (funct3(2 downto 1) === B"11")
-                    sub                         := (funct3(2 downto 1) =/= B"00")
+                    itype           := InstrType.B
+                    iformat         := InstrFormat.B
+                    unsigned        := (funct3(2 downto 1) === B"11")
+                    sub             := (funct3(2 downto 1) =/= B"00")
                 }
             }
             is(Opcodes.L){
                 when(funct3 =/= B"011" && funct3 =/= B"110" && funct3 =/= B"111") {
-                    decoded_instr.itype     := InstrType.L
-                    decoded_instr.iformat   := InstrFormat.I
+                    itype           := InstrType.L
+                    iformat         := InstrFormat.I
                 }
             }
             is(Opcodes.S){
                 when(funct3 === B"000" || funct3 === B"001" || funct3 === B"010") {
-                    decoded_instr.itype     := InstrType.S
-                    decoded_instr.iformat   := InstrFormat.S
+                    itype           := InstrType.S
+                    iformat         := InstrFormat.S
                 }
             }
             is(Opcodes.ALUI){
                 when(funct3 === B"000"){
-                    decoded_instr.itype     := InstrType.ALU_ADD
-                    decoded_instr.iformat   := InstrFormat.I
+                    itype           := InstrType.ALU_ADD
+                    iformat         := InstrFormat.I
                 }
                 .elsewhen(funct3 === B"010" || funct3 === B"011") {
                     // ALU_I: SLTI, SLTIU
-                    decoded_instr.itype         := InstrType.ALU
-                    decoded_instr.iformat       := InstrFormat.I
-                    unsigned                    := funct3(0)
-                    sub                         := True
+                    itype           := InstrType.ALU
+                    iformat         := InstrFormat.I
+                    unsigned        := funct3(0)
+                    sub             := True
                 }
                 .elsewhen(funct3 === B"100" || funct3 === B"110" || funct3 === B"111") {
                     // ALU_I: XORI, ORI, ANDI
-                    decoded_instr.itype         := InstrType.ALU
-                    decoded_instr.iformat       := InstrFormat.I
-                }.elsewhen( (funct7 ## funct3) === B"0000000001" || (funct7 ## funct3) === B"0000000101" || (funct7 ## funct3) === B"0100000101") {
+                    itype           := InstrType.ALU
+                    iformat         := InstrFormat.I
+                }
+                .elsewhen( (funct7 ## funct3) === B"0000000001" || (funct7 ## funct3) === B"0000000101" || (funct7 ## funct3) === B"0100000101") {
                     // SHIFT_I: SLLI, SRLI, SRAI
-                    decoded_instr.itype     := InstrType.SHIFT
-                    decoded_instr.iformat   := InstrFormat.Shamt
+                    itype           := InstrType.SHIFT
+                    iformat         := InstrFormat.Shamt
                 }
             }
             is(Opcodes.ALU){
                 switch(funct7 ## funct3){
                     is(B"0000000_000", B"0100000_000"){
                         // ADD, SUB
-                        decoded_instr.itype         := InstrType.ALU_ADD
-                        decoded_instr.iformat       := InstrFormat.R
-                        sub                         := funct7(5)
+                        itype           := InstrType.ALU_ADD
+                        iformat         := InstrFormat.R
+                        sub             := funct7(5)
                     }
                     is(B"0000000_100", B"0000000_110", B"0000000_111"){
                         // ADD, SUB, XOR, OR, AND
-                        decoded_instr.itype         := InstrType.ALU
-                        decoded_instr.iformat       := InstrFormat.R
+                        itype           := InstrType.ALU
+                        iformat         := InstrFormat.R
                     }
                     is(B"0000000_001", B"0000000_101", B"0100000_101"){
                         // SLL, SRL, SRA
-                        decoded_instr.itype         := InstrType.SHIFT
-                        decoded_instr.iformat       := InstrFormat.R
+                        itype           := InstrType.SHIFT
+                        iformat         := InstrFormat.R
                     }
                     is( B"0000000_010", B"0000000_011") {
                         // SLT, SLTU
-                        decoded_instr.itype         := InstrType.ALU
-                        decoded_instr.iformat       := InstrFormat.R
-                        unsigned                    := funct3(0)
-                        sub                         := True
+                        itype           := InstrType.ALU
+                        iformat         := InstrFormat.R
+                        unsigned        := funct3(0)
+                        sub             := True
                     }
                     is(B"0000001_000", B"0000001_001", B"0000001_010", B"0000001_011"){
                         // MUL
                         if (hasMul){
                             when(funct7 === B"0000001"){
-                                decoded_instr.itype     := InstrType.MULDIV
-                                decoded_instr.iformat   := InstrFormat.R
+                                itype       := InstrType.MULDIV
+                                iformat     := InstrFormat.R
                             }
                         }
                     }
@@ -195,8 +190,8 @@ class Decode(config: MR1Config) extends Component {
                         // DIV
                         if (hasDiv){
                             when(funct7 === B"0000001"){
-                                decoded_instr.itype     := InstrType.MULDIV
-                                decoded_instr.iformat   := InstrFormat.R
+                                itype       := InstrType.MULDIV
+                                iformat     := InstrFormat.R
                             }
                         }
                     }
@@ -205,8 +200,8 @@ class Decode(config: MR1Config) extends Component {
             is(Opcodes.F){
                 if (hasFence){
                     when( funct3 === B"000" || funct3 === B"001"){
-                        decoded_instr.itype     := InstrType.FENCE
-                        decoded_instr.iformat   := InstrFormat.I
+                        itype       := InstrType.FENCE
+                        iformat     := InstrFormat.I
                     }
                 }
             }
@@ -214,12 +209,12 @@ class Decode(config: MR1Config) extends Component {
             is(Opcodes.SYS){
                 when( instr(31 downto 7) === B"0000_0000_0000_0000_0000_0000_0" || instr(31 downto 7) === B"0000_0000_0001_0000_0000_0000_0")
                 {
-                    decoded_instr.itype     := InstrType.E
-                    decoded_instr.iformat   := InstrFormat.I
+                    itype       := InstrType.E
+                    iformat     := InstrFormat.I
                 }.elsewhen(funct3 === B"001" || funct3 === B"010" || funct3 === B"011" || funct3 === B"101" || funct3 === B"110" || funct3 === B"111") {
                     if (hasCsr){
-                        decoded_instr.itype     := InstrType.CSR
-                        decoded_instr.iformat   := InstrFormat.I
+                        itype       := InstrType.CSR
+                        iformat     := InstrFormat.I
                     }
                 }
             }
@@ -236,21 +231,21 @@ class Decode(config: MR1Config) extends Component {
     io.d2f.pc_jump_valid := io.e2d.pc_jump_valid
     io.d2f.pc_jump       := io.e2d.pc_jump
 
-    val rs1_valid =  (decode.decoded_instr.iformat === InstrFormat.R) ||
-                     (decode.decoded_instr.iformat === InstrFormat.I) ||
-                     (decode.decoded_instr.iformat === InstrFormat.S) ||
-                     (decode.decoded_instr.iformat === InstrFormat.B) ||
-                     (decode.decoded_instr.iformat === InstrFormat.Shamt)
+    val rs1_valid =  (decode.iformat === InstrFormat.R) ||
+                     (decode.iformat === InstrFormat.I) ||
+                     (decode.iformat === InstrFormat.S) ||
+                     (decode.iformat === InstrFormat.B) ||
+                     (decode.iformat === InstrFormat.Shamt)
 
-    val rs2_valid =  (decode.decoded_instr.iformat === InstrFormat.R) ||
-                     (decode.decoded_instr.iformat === InstrFormat.S) ||
-                     (decode.decoded_instr.iformat === InstrFormat.B)
+    val rs2_valid =  (decode.iformat === InstrFormat.R) ||
+                     (decode.iformat === InstrFormat.S) ||
+                     (decode.iformat === InstrFormat.B)
 
-    val rd_valid =   (decode.decoded_instr.iformat === InstrFormat.R) ||
-                     (decode.decoded_instr.iformat === InstrFormat.I) ||
-                     (decode.decoded_instr.iformat === InstrFormat.U) ||
-                     (decode.decoded_instr.iformat === InstrFormat.J) ||
-                     (decode.decoded_instr.iformat === InstrFormat.Shamt)
+    val rd_valid =   (decode.iformat === InstrFormat.R) ||
+                     (decode.iformat === InstrFormat.I) ||
+                     (decode.iformat === InstrFormat.U) ||
+                     (decode.iformat === InstrFormat.J) ||
+                     (decode.iformat === InstrFormat.Shamt)
 
     val rs1_33 = decode.unsigned ? B(U(io.r2rr.rs1_data).resize(33)) | B(S(io.r2rr.rs1_data).resize(33))
     val rs2_33 = decode.unsigned ? B(U(io.r2rr.rs2_data).resize(33)) | B(S(io.r2rr.rs2_data).resize(33))
@@ -266,7 +261,7 @@ class Decode(config: MR1Config) extends Component {
     val unsigned = decode.unsigned
 
     val op2_33 = Bits(33 bits)
-    op2_33 := decode.decoded_instr.iformat.mux(
+    op2_33 := decode.iformat.mux(
             InstrFormat.R       -> rs2_33,
             InstrFormat.I       -> B(unsigned ? U(i_imm).resize(33) | U(i_imm.resize(33)) ),
             InstrFormat.S       -> B(s_imm.resize(33)),
@@ -278,7 +273,7 @@ class Decode(config: MR1Config) extends Component {
     val op1_op2_lsb = B((U(False ## op1_33(7 downto 0) ## sub) + U(False ## op2_33(7 downto 0) ## sub)))(9 downto 1)
 
     val rs2_imm = Bits(32 bits)
-    rs2_imm := decode.decoded_instr.iformat.mux(
+    rs2_imm := decode.iformat.mux(
             InstrFormat.I       -> io.r2rr.rs2_data(31 downto 21) ## i_imm(20 downto 0),
             InstrFormat.B       -> io.r2rr.rs2_data(31 downto 21) ## b_imm(20 downto 0),
             InstrFormat.J       -> io.r2rr.rs2_data(31 downto 21) ## j_imm(20 downto 0),
@@ -301,7 +296,7 @@ class Decode(config: MR1Config) extends Component {
         rvfi.valid      := decode_end
         rvfi.order      := order
         rvfi.insn       := io.f2d.instr
-        rvfi.trap       := (decode.decoded_instr.iformat === InstrFormat.Undef)
+        rvfi.trap       := (decode.iformat === InstrFormat.Undef)
         rvfi.halt       := False
         rvfi.intr       := False
         rvfi.rs1_addr   := rs1_valid ? decode.rs1_addr | 0
@@ -324,7 +319,7 @@ class Decode(config: MR1Config) extends Component {
 
         d2e_nxt.valid           := io.f2d.valid 
         d2e_nxt.pc              := io.f2d.pc
-        d2e_nxt.decoded_instr   := decode.decoded_instr
+        d2e_nxt.itype           := decode.itype
         d2e_nxt.instr           := instr
         d2e_nxt.op1_33          := op1_33
         d2e_nxt.op2_33          := op2_33

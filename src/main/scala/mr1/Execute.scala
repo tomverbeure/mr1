@@ -8,18 +8,21 @@ case class Execute2Writeback(config: MR1Config) extends Bundle {
     val valid           = Bool
     val ld_active       = Bool
     val ld_addr_lsb     = UInt(2 bits)
+    val ld_data_size    = Bits(2 bits)
+    val ld_data_signed  = Bool
 
     val rd_wr           = Bool
     val rd_waddr        = UInt(5 bits)
     val rd_wdata        = Bits(32 bits)
 
-    val rvfi = if (config.hasFormal) RVFI(config) else null
-
     def init() : Execute2Writeback = {
         valid init(False)
-        if (config.hasFormal) rvfi init()
         this
     }
+}
+
+case class Writeback2Execute(config: MR1Config) extends Bundle {
+    val stall           = Bool
 }
 
 class Execute(config: MR1Config) extends Component {
@@ -32,19 +35,22 @@ class Execute(config: MR1Config) extends Component {
     val io = new Bundle {
         val d2e         = in(Decode2Execute(config))
         val e2d         = out(Execute2Decode(config))
-        val e2f         = out(Execute2Fetch(config))
 
-        val rd_update   = RegRdUpdate(config)
+        val rd_update   = out(RegRdUpdate(config))
 
-        val e2w         = out(Execute2Writeback(config))
+        val e2w         = out(Reg(Execute2Writeback(config)))
+        val w2e         = in(Writeback2Execute(config))
 
         val data_req    = DataReqIntfc(config)
+
+        val d2e_rvfi    = if (config.hasFormal) in(     RVFI(config)      ) else null
+        val e2w_rvfi    = if (config.hasFormal) out(Reg(RVFI(config)) init) else null
     }
 
     val e2d_stall_d = RegNext(io.e2d.stall, False)
 
     val exe_start = io.d2e.valid && !e2d_stall_d
-    val exe_end   = io.d2e.valid && !io.e2d.stall
+    val exe_end   = io.d2e.valid && !io.e2d.stall && !io.w2e.stall
 
     val itype           = InstrType()
     val instr           = Bits(32 bits)
@@ -212,7 +218,7 @@ class Execute(config: MR1Config) extends Component {
 
     val lsu = new Area {
 
-        val lsu_stall = False
+        val lsu_stall = Bool
 
         val rd_wr    = False
         val size     = funct3(1 downto 0)
@@ -238,10 +244,11 @@ class Execute(config: MR1Config) extends Component {
                    B((jump.rd_wdata.range  -> jump.rd_wr))  & B(jump.rd_wdata)  |
                    B((shift.rd_wdata.range -> shift.rd_wr)) & B(shift.rd_wdata)
 
-    io.e2d.stall         := lsu.lsu_stall
+    io.e2d.stall         := lsu.lsu_stall || io.w2e.stall
     io.e2d.pc_jump_valid := io.d2e.valid && jump.pc_jump_valid
     io.e2d.pc_jump       := jump.pc_jump
 
+    // Feedback for RAW testing and bypass
     io.rd_update.rd_waddr_valid := io.d2e.valid
     io.rd_update.rd_waddr       := rd_addr
     io.rd_update.rd_wdata_valid := rd_wr
@@ -249,83 +256,104 @@ class Execute(config: MR1Config) extends Component {
 
     // Write to RegFile
     io.e2w.rd_wr        := rd_wr
-    io.e2w.rd_wr_addr   := rd_waddr
-    io.e2w.rd_wr_data   := rd_wdata
+    io.e2w.rd_waddr     := rd_waddr
+    io.e2w.rd_wdata     := rd_wdata
 
     val formal = if (config.hasFormal) new Area {
 
-        io.e2w.rvfi.valid := exe_end
+        val rvfi = io.e2w_rvfi
+
+        rvfi.valid := exe_end
 
         when(exe_start){
-            io.e2w.rvfi.order     := io.d2e.rvfi.order
-            io.e2w.rvfi.pc_rdata  := io.d2e.rvfi.pc_rdata
-            io.e2w.rvfi.insn      := io.d2e.rvfi.insn
-            io.e2w.rvfi.trap      := io.d2e.rvfi.trap
-            io.e2w.rvfi.halt      := io.d2e.rvfi.halt
-            io.e2w.rvfi.intr      := io.d2e.rvfi.intr
+            rvfi.order     := io.d2e_rvfi.order
+            rvfi.pc_rdata  := io.d2e_rvfi.pc_rdata
+            rvfi.insn      := io.d2e_rvfi.insn
+            rvfi.trap      := io.d2e_rvfi.trap
+            rvfi.halt      := io.d2e_rvfi.halt
+            rvfi.intr      := io.d2e_rvfi.intr
 
-            io.e2w.rvfi.rs1_addr  := io.d2e.rvfi.rs1_addr
-            io.e2w.rvfi.rs2_addr  := io.d2e.rvfi.rs2_addr
-            io.e2w.rvfi.rd_addr   := io.d2e.rvfi.rd_addr
+            rvfi.rs1_addr  := io.d2e_rvfi.rs1_addr
+            rvfi.rs2_addr  := io.d2e_rvfi.rs2_addr
+            rvfi.rd_addr   := io.d2e_rvfi.rd_addr
 
-            io.e2w.rvfi.rs1_rdata := io.d2e.rvfi.rs1_rdata
-            io.e2w.rvfi.rs2_rdata := io.d2e.rvfi.rs2_rdata
-            io.e2w.rvfi.rd_wdata  := 0
+            rvfi.rs1_rdata := io.d2e_rvfi.rs1_rdata
+            rvfi.rs2_rdata := io.d2e_rvfi.rs2_rdata
+            rvfi.rd_wdata  := 0
 
-            io.e2w.rvfi.mem_addr  := 0
-            io.e2w.rvfi.mem_rmask := 0
-            io.e2w.rvfi.mem_rdata := 0
-            io.e2w.rvfi.mem_wmask := 0
-            io.e2w.rvfi.mem_wdata := 0
+            rvfi.mem_addr  := 0
+            rvfi.mem_rmask := 0
+            rvfi.mem_rdata := 0
+            rvfi.mem_wmask := 0
+            rvfi.mem_wdata := 0
         }
 
         when(exe_end){
             when(io.e2d.pc_jump_valid){
-                io.e2w.rvfi.pc_wdata  := io.e2d.pc_jump.resize(32)
+                rvfi.pc_wdata  := io.e2d.pc_jump.resize(32)
             }
             .otherwise{
-                io.e2w.rvfi.pc_wdata  := io.d2e.rvfi.pc_rdata + 4
+                rvfi.pc_wdata  := io.d2e_rvfi.pc_rdata + 4
             }
         }
 
         switch(itype){
             is(InstrType.B, InstrType.JAL, InstrType.JALR){
                 when(exe_end && io.e2d.pc_jump_valid && io.e2d.pc_jump(1 downto 0) =/= "00"){
-                    io.e2w.rvfi.trap := True
+                    rvfi.trap := True
                 }
             }
             is(InstrType.L){
                 when(io.data_req.valid && io.data_req.ready){
-                    io.e2w.rvfi.mem_addr  := lsu.lsu_addr(31 downto 2) @@ U"00"
-                    io.e2w.rvfi.mem_rmask := ((io.data_req.size === B"00") ? B"0001" |
-                                             ((io.data_req.size === B"01") ? B"0011" |
-                                                                             B"1111")) |<< lsu.lsu_addr(1 downto 0)
+                    rvfi.mem_addr  := lsu.lsu_addr(31 downto 2) @@ U"00"
+                    rvfi.mem_rmask := ((io.data_req.size === B"00") ? B"0001" |
+                                      ((io.data_req.size === B"01") ? B"0011" |
+                                                                      B"1111")) |<< lsu.lsu_addr(1 downto 0)
 
-                    io.e2w.rvfi.trap      := (io.data_req.size === B"01" && lsu.lsu_addr(0)) |
+                    rvfi.trap      := (io.data_req.size === B"01" && lsu.lsu_addr(0)) |
                                              (io.data_req.size === B"10" && lsu.lsu_addr(1 downto 0) =/= "00")
-                }
-
-                when(io.data_rsp.valid){
-                    io.rvfi.mem_rdata := io.data_rsp.data
                 }
             }
             is(InstrType.S){
                 when(io.data_req.valid && io.data_req.ready){
-                    io.rvfi.mem_addr  := lsu.lsu_addr(31 downto 2) @@ U"00"
-                    io.rvfi.mem_wmask := ((io.data_req.size === B"00") ? B"0001" |
-                                         ((io.data_req.size === B"01") ? B"0011" |
-                                                                         B"1111")) |<< lsu.lsu_addr(1 downto 0)
+                    rvfi.mem_addr  := lsu.lsu_addr(31 downto 2) @@ U"00"
+                    rvfi.mem_wmask := ((io.data_req.size === B"00") ? B"0001" |
+                                      ((io.data_req.size === B"01") ? B"0011" |
+                                                                      B"1111")) |<< lsu.lsu_addr(1 downto 0)
 
-                    io.rvfi.mem_wdata := io.data_req.data
+                    rvfi.mem_wdata := io.data_req.data
 
-                    io.rvfi.trap      := (io.data_req.size === B"01" && lsu.lsu_addr(0)) |
-                                         (io.data_req.size === B"10" && lsu.lsu_addr(1 downto 0) =/= "00")
+                    rvfi.trap      := (io.data_req.size === B"01" && lsu.lsu_addr(0)) |
+                                      (io.data_req.size === B"10" && lsu.lsu_addr(1 downto 0) =/= "00")
 
                 }
             }
         }
 
     } else null
+
+    val e2w = new Area {
+        val e2w_nxt     = Execute2Writeback(config).setName("e2w_nxt")
+
+        e2w_nxt.valid           := io.d2e.valid 
+
+        e2w_nxt.ld_active       := io.data_req.valid && !io.data_req.wr
+        e2w_nxt.ld_addr_lsb     := io.data_req.addr(1 downto 0)
+        e2w_nxt.ld_data_size    := io.data_req.size
+        e2w_nxt.ld_data_signed  := !funct3(2)
+
+        e2w_nxt.rd_wr           := rd_wr
+        e2w_nxt.rd_waddr        := rd_waddr
+        e2w_nxt.rd_wdata        := rd_wdata
+
+        when(io.d2e.valid && !io.e2d.stall){
+            io.e2w          := e2w_nxt
+        }
+        .elsewhen(!io.w2e.stall && io.e2w.valid){
+            io.e2w.valid    := False
+        }
+
+    }
 
 }
 

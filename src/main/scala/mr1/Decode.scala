@@ -15,11 +15,8 @@ case class Decode2Execute(config: MR1Config) extends Bundle {
     val rs2_imm         = Bits(32 bits)
     val rd_valid        = Bool
 
-    val rvfi = if (config.hasFormal) RVFI(config) else null
-
     def init() : Decode2Execute = {
         valid init(False)
-        if (config.hasFormal) rvfi init()
         this
     }
 
@@ -47,10 +44,14 @@ class Decode(config: MR1Config) extends Component {
         val f2d         = in(Fetch2Decode(config))
         val d2f         = out(Decode2Fetch(config))
 
+        val rd_update   = out(RegRdUpdate(config))
+
         val r2rr        = in(RegFile2ReadResult(config))
 
         val d2e         = out(Reg(Decode2Execute(config)) init).addAttribute("keep")
         val e2d         = in(Execute2Decode(config))
+
+        val d2e_rvfi    = if (config.hasFormal) out(Reg(RVFI(config)) init) else null
     }
 
     val instr       = io.f2d.instr
@@ -287,12 +288,15 @@ class Decode(config: MR1Config) extends Component {
             )
 
     io.d2f.stall         := io.e2d.stall
-    io.d2f.rd_addr_valid := decode_end && rd_valid
-    io.d2f.rd_addr       := decode.rd_addr
+
+    io.rd_update.rd_waddr_valid := decode_end && rd_valid
+    io.rd_update.rd_waddr       := decode.rd_addr
+    io.rd_update.rd_wdata_valid := False
+    io.rd_update.rd_wdata       := 0
 
     val formal = if (config.hasFormal) new Area {
 
-        val rvfi = RVFI(config)
+        val rvfi = io.d2e_rvfi
 
         val order = Reg(UInt(64 bits)) init(0)
         when(decode_end){
@@ -332,9 +336,6 @@ class Decode(config: MR1Config) extends Component {
         d2e_nxt.op1_op2_lsb     := op1_op2_lsb
         d2e_nxt.rs2_imm         := rs2_imm
         d2e_nxt.rd_valid        := rd_valid
-
-        if (config.hasFormal)
-            d2e_nxt.rvfi            := formal.rvfi
 
         when(io.f2d.valid && !io.e2d.stall){
             io.d2e          := d2e_nxt

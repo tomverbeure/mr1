@@ -83,7 +83,7 @@ object InstrFormat extends SpinalEnum(binaryOneHot) {
     val Shamt   = newElement()
 }
 
-object InstrType extends SpinalEnum {
+object InstrType extends SpinalEnum(binaryOneHot) {
     val Undef   = newElement()
     val JAL     = newElement()
     val JALR    = newElement()

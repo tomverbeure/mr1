@@ -366,3 +366,15 @@ IFormat -> one-hot
 
     Critical path in data load path to reg_wr
 
+IType and Fetch.PcState -> one-hot + SpinalHDL one-hot fix.
+
+* Speed: 83MHz vs 99MHz (???)
+
+* Area:
+
+    Logic elements: 1259 vs 1582
+
+    Registers: 336 vs 495
+
+    Critical path in data load path to reg_wr
+

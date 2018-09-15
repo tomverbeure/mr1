@@ -81,7 +81,7 @@ class Decode(config: MR1Config) extends Component {
         val sub         = False
         val unsigned    = False
 
-        iformat         := InstrFormat.Undef
+        iformat         := InstrFormat.R
         itype           := InstrType.Undef
 
         val op1_kind = Op1Kind()

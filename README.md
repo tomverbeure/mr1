@@ -342,3 +342,27 @@ LT merged with ALU\_ADD. ALU\_ADD split into Decoder
 
     Critical path from instr RAM to pc.
 
+Simplify Decoder
+
+* Speed: 78MHz vs 99MHz (???)
+
+* Area:
+
+    Logic elements: 1320 vs 1582
+
+    Registers: 333 vs 495
+
+    Critical path in data load path to reg_wr
+
+IFormat -> one-hot
+
+* Speed: 83MHz vs 99MHz (???)
+
+* Area:
+
+    Logic elements: 1403 vs 1582
+
+    Registers: 333 vs 495
+
+    Critical path in data load path to reg_wr
+

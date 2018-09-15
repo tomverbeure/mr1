@@ -73,8 +73,7 @@ case class RVFI(config: MR1Config) extends Bundle {
     }
 }
 
-object InstrFormat extends SpinalEnum {
-    val Undef   = newElement()
+object InstrFormat extends SpinalEnum(binaryOneHot) {
     val R       = newElement()
     val I       = newElement()
     val S       = newElement()

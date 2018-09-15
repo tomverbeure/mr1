@@ -39,8 +39,8 @@ class Writeback(config: MR1Config) extends Component {
                             default ->                              rsp_data_shift_adj
                     )
 
-        val ld_stall = io.e2w.ld_active && !io.data_rsp.valid
-        val rd_wr = io.e2w.ld_active && !ld_stall
+        val ld_stall = io.e2w.valid && io.e2w.ld_active && !io.data_rsp.valid
+        val rd_wr    = io.e2w.valid && io.e2w.ld_active && !ld_stall
     }
 
     val rd_wr    = io.e2w.valid && (io.e2w.rd_wr | ld.rd_wr) && (io.e2w.rd_waddr =/= 0)
@@ -56,7 +56,7 @@ class Writeback(config: MR1Config) extends Component {
     io.w2r.rd_wr_data   := rd_wdata
 
     // Feedback for RAW testing and bypass
-    io.rd_update.rd_waddr_valid := io.e2w.valid
+    io.rd_update.rd_waddr_valid := io.e2w.rd_wr
     io.rd_update.rd_waddr       := io.e2w.rd_waddr
     io.rd_update.rd_wdata_valid := rd_wr
     io.rd_update.rd_wdata       := rd_wdata
@@ -91,11 +91,10 @@ class Writeback(config: MR1Config) extends Component {
         }
 
         when(rd_wr){
-            io.rvfi.rd_addr   := rd_waddr
             io.rvfi.rd_wdata  := rd_wdata
         }
 
-        when(io.data_rsp.valid){
+        when(io.e2w.ld_active && io.data_rsp.valid){
             io.rvfi.mem_rdata := io.data_rsp.data
         }
 

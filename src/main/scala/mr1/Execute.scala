@@ -55,13 +55,10 @@ class Execute(config: MR1Config) extends Component {
     val itype           = InstrType()
     val instr           = Bits(32 bits)
     val funct3          = Bits(3 bits)
-    val rd_addr         = UInt(5 bits)
-    val rd_addr_valid   = Bool
 
     itype           := io.d2e.itype
     instr           := io.d2e.instr
     funct3          := instr(14 downto 12)
-    rd_addr         := U(instr(11 downto 7))
 
     val op1_33      = S(io.d2e.op1_33)
     val op2_33      = S(io.d2e.op2_33)
@@ -70,6 +67,7 @@ class Execute(config: MR1Config) extends Component {
     val op2         = S(io.d2e.op2_33)(31 downto 0)
     val rs2         = io.d2e.rs2_imm
     val imm         = S(io.d2e.rs2_imm(20 downto 0))
+    val rd_addr     = io.d2e.rd_addr
 
     val alu = new Area {
         val rd_wr    = False
@@ -235,11 +233,11 @@ class Execute(config: MR1Config) extends Component {
                                 B"01"   -> rs2(15 downto 0) ## rs2(15 downto 0),
                                 default -> rs2)
 
-        lsu_stall := !io.data_req.ready
+        lsu_stall := io.data_req.valid && !io.data_req.ready
     }
 
     val rd_wr    = io.d2e.valid && (alu.rd_wr | jump.rd_wr | shift.rd_wr) && (rd_addr =/= 0)
-    val rd_waddr = rd_wr ? rd_addr | U"5'd0"
+    val rd_waddr = rd_addr
     val rd_wdata = B((alu.rd_wdata.range   -> alu.rd_wr))   & B(alu.rd_wdata)   |
                    B((jump.rd_wdata.range  -> jump.rd_wr))  & B(jump.rd_wdata)  |
                    B((shift.rd_wdata.range -> shift.rd_wr)) & B(shift.rd_wdata)
@@ -249,15 +247,10 @@ class Execute(config: MR1Config) extends Component {
     io.e2d.pc_jump       := jump.pc_jump
 
     // Feedback for RAW testing and bypass
-    io.rd_update.rd_waddr_valid := io.d2e.valid
+    io.rd_update.rd_waddr_valid := io.d2e.valid && io.d2e.rd_valid
     io.rd_update.rd_waddr       := rd_addr
     io.rd_update.rd_wdata_valid := rd_wr
     io.rd_update.rd_wdata       := rd_wdata
-
-    // Write to RegFile
-    io.e2w.rd_wr        := rd_wr
-    io.e2w.rd_waddr     := rd_waddr
-    io.e2w.rd_wdata     := rd_wdata
 
     val formal = if (config.hasFormal) new Area {
 

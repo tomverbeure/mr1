@@ -14,6 +14,7 @@ case class Decode2Execute(config: MR1Config) extends Bundle {
     val op1_op2_lsb     = Bits(9 bits)
     val rs2_imm         = Bits(32 bits)
     val rd_valid        = Bool
+    val rd_addr         = UInt(5 bits)
 
     def init() : Decode2Execute = {
         valid init(False)
@@ -48,7 +49,7 @@ class Decode(config: MR1Config) extends Component {
         val d2e         = out(Reg(Decode2Execute(config)) init).addAttribute("keep")
         val e2d         = in(Execute2Decode(config))
 
-        val d2e_rvfi    = if (config.hasFormal) out(Reg(RVFI(config)) init) else null
+        val d2e_rvfi    = if (config.hasFormal) out(Reg(RVFI(config)) init).setName("io_d2e_rvfi") else null
     }
 
     val instr       = io.f2d.instr
@@ -251,6 +252,8 @@ class Decode(config: MR1Config) extends Component {
                      (decode.iformat === InstrFormat.J) ||
                      (decode.iformat === InstrFormat.Shamt)
 
+    val rd_addr_final = rd_valid ? decode.rd_addr | U"5'd0"
+
     val rs1_33 = decode.unsigned ? B(U(io.r2rr.rs1_data).resize(33)) | B(S(io.r2rr.rs1_data).resize(33))
     val rs2_33 = decode.unsigned ? B(U(io.r2rr.rs2_data).resize(33)) | B(S(io.r2rr.rs2_data).resize(33))
 
@@ -287,7 +290,7 @@ class Decode(config: MR1Config) extends Component {
     io.d2f.stall         := io.e2d.stall
 
     io.rd_update.rd_waddr_valid := decode_end && rd_valid
-    io.rd_update.rd_waddr       := decode.rd_addr
+    io.rd_update.rd_waddr       := rd_addr_final
     io.rd_update.rd_wdata_valid := False
     io.rd_update.rd_wdata       := 0
 
@@ -301,24 +304,27 @@ class Decode(config: MR1Config) extends Component {
         }
 
         rvfi.valid      := decode_end
-        rvfi.order      := order
-        rvfi.insn       := io.f2d.instr
-        rvfi.trap       := (decode.itype === InstrType.Undef)
-        rvfi.halt       := False
-        rvfi.intr       := False
-        rvfi.rs1_addr   := rs1_valid ? decode.rs1_addr | 0
-        rvfi.rs2_addr   := rs2_valid ? decode.rs2_addr | 0
-        rvfi.rs1_rdata  := rs1_valid ? io.r2rr.rs1_data | 0
-        rvfi.rs2_rdata  := rs2_valid ? io.r2rr.rs2_data | 0
-        rvfi.rd_addr    := rd_valid ?  decode.rd_addr | 0
-        rvfi.rd_wdata   := 0
-        rvfi.pc_rdata   := io.f2d.pc.resize(32)
-        rvfi.pc_wdata   := 0
-        rvfi.mem_addr   := 0
-        rvfi.mem_rmask  := 0
-        rvfi.mem_wmask  := 0
-        rvfi.mem_rdata  := 0
-        rvfi.mem_wdata  := 0
+
+        when(decode_end){
+            rvfi.order      := order
+            rvfi.insn       := io.f2d.instr
+            rvfi.trap       := (decode.itype === InstrType.Undef)
+            rvfi.halt       := False
+            rvfi.intr       := False
+            rvfi.rs1_addr   := rs1_valid ? decode.rs1_addr | 0
+            rvfi.rs2_addr   := rs2_valid ? decode.rs2_addr | 0
+            rvfi.rs1_rdata  := rs1_valid ? io.r2rr.rs1_data | 0
+            rvfi.rs2_rdata  := rs2_valid ? io.r2rr.rs2_data | 0
+            rvfi.rd_addr    := rd_addr_final
+            rvfi.rd_wdata   := 0
+            rvfi.pc_rdata   := io.f2d.pc.resize(32)
+            rvfi.pc_wdata   := 0
+            rvfi.mem_addr   := 0
+            rvfi.mem_rmask  := 0
+            rvfi.mem_wmask  := 0
+            rvfi.mem_rdata  := 0
+            rvfi.mem_wdata  := 0
+        }
     } else null
 
     val d2e = new Area {
@@ -333,6 +339,7 @@ class Decode(config: MR1Config) extends Component {
         d2e_nxt.op1_op2_lsb     := op1_op2_lsb
         d2e_nxt.rs2_imm         := rs2_imm
         d2e_nxt.rd_valid        := rd_valid
+        d2e_nxt.rd_addr         := rd_addr_final
 
         when(io.f2d.valid && !io.e2d.stall){
             io.d2e          := d2e_nxt

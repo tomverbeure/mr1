@@ -248,11 +248,14 @@ class Decode(config: MR1Config) extends Component {
                       (decode.iformat === InstrFormat.S) ||
                       (decode.iformat === InstrFormat.B)    ) && !trap
 
+    // trap is NOT included in this term because it would get up into the critical
+    // path inside Fetch. So illegal instructions will result in an incorrect RAW stall, but that's
+    // OK.
     val rd_valid =   ((decode.iformat === InstrFormat.R) ||
                       (decode.iformat === InstrFormat.I) ||
                       (decode.iformat === InstrFormat.U) ||
                       (decode.iformat === InstrFormat.J) ||
-                      (decode.iformat === InstrFormat.Shamt)) && !trap
+                      (decode.iformat === InstrFormat.Shamt))
 
     val rd_addr_final = rd_valid ? decode.rd_addr | U"5'd0"
 
@@ -313,11 +316,11 @@ class Decode(config: MR1Config) extends Component {
             rvfi.trap       := trap
             rvfi.halt       := False
             rvfi.intr       := False
-            rvfi.rs1_addr   := rs1_valid ? decode.rs1_addr | 0
-            rvfi.rs2_addr   := rs2_valid ? decode.rs2_addr | 0
+            rvfi.rs1_addr   := rs1_valid ? decode.rs1_addr  | 0
+            rvfi.rs2_addr   := rs2_valid ? decode.rs2_addr  | 0
             rvfi.rs1_rdata  := rs1_valid ? io.r2rr.rs1_data | 0
             rvfi.rs2_rdata  := rs2_valid ? io.r2rr.rs2_data | 0
-            rvfi.rd_addr    := rd_addr_final
+            rvfi.rd_addr    := !trap     ? rd_addr_final    | 0
             rvfi.rd_wdata   := 0
             rvfi.pc_rdata   := io.f2d.pc.resize(32)
             rvfi.pc_wdata   := 0
@@ -340,7 +343,7 @@ class Decode(config: MR1Config) extends Component {
         d2e_nxt.op2_33          := op2_33
         d2e_nxt.op1_op2_lsb     := op1_op2_lsb
         d2e_nxt.rs2_imm         := rs2_imm
-        d2e_nxt.rd_valid        := rd_valid
+        d2e_nxt.rd_valid        := !trap && rd_valid
         d2e_nxt.rd_addr         := rd_addr_final
 
         when(io.f2d.valid && !io.e2d.stall){

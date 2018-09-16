@@ -12,7 +12,8 @@ case class MR1Config(
                 supportAsyncReg : Boolean = false,
                 supportRegInit  : Boolean = false,
                 pcSize          : Int     = 32,
-                dataAddrSize    : Int     = 32
+                dataAddrSize    : Int     = 32,
+                reflopDataRsp   : Boolean = true
                 ) {
 
     def hasMul      = supportMul

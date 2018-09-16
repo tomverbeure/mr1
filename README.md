@@ -390,3 +390,15 @@ Working Writeback stage
 
     Critical path in fetch.
 
+Add FF on data\_rsp (one-hot enabled SpinalHDL), remove raw critical path
+
+* Speed: 81MHz vs 99MHz (Uses non-one-hot SpinalHDL version)
+
+* Area:
+
+    Logic elements: 1339 vs 1582
+
+    Registers: 413 vs 495
+
+    Critical path from instr to f2d.
+

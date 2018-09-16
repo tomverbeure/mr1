@@ -27,8 +27,11 @@ class Writeback(config: MR1Config) extends Component {
 
     val ld = new Area {
 
+        val data_rsp_valid = if (config.reflopDataRsp) RegNext(io.data_rsp.valid) else io.data_rsp.valid
+        val data_rsp_data  = if (config.reflopDataRsp) RegNext(io.data_rsp.data)  else io.data_rsp.data
+
         val rsp_data_shift_adj = Bits(32 bits)
-        rsp_data_shift_adj := io.data_rsp.data >> (io.e2w.ld_addr_lsb(1 downto 0) * 8)
+        rsp_data_shift_adj := data_rsp_data >> (io.e2w.ld_addr_lsb(1 downto 0) * 8)
 
         val rd_wdata = Bits(32 bits)
         rd_wdata := io.e2w.ld_data_size.mux(
@@ -39,7 +42,7 @@ class Writeback(config: MR1Config) extends Component {
                             default ->                              rsp_data_shift_adj
                     )
 
-        val ld_stall = io.e2w.valid && io.e2w.ld_active && !io.data_rsp.valid
+        val ld_stall = io.e2w.valid && io.e2w.ld_active && !data_rsp_valid
         val rd_wr    = io.e2w.valid && io.e2w.ld_active && !ld_stall
     }
 
@@ -94,8 +97,8 @@ class Writeback(config: MR1Config) extends Component {
             io.rvfi.rd_wdata  := rd_wdata
         }
 
-        when(io.e2w.ld_active && io.data_rsp.valid){
-            io.rvfi.mem_rdata := io.data_rsp.data
+        when(io.e2w.ld_active && ld.data_rsp_valid){
+            io.rvfi.mem_rdata := ld.data_rsp_data
         }
 
     } else null

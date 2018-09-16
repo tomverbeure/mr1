@@ -368,7 +368,7 @@ IFormat -> one-hot
 
 IType and Fetch.PcState -> one-hot + SpinalHDL one-hot fix.
 
-* Speed: 83MHz vs 99MHz (???)
+* Speed: 83MHz vs 99MHz 
 
 * Area:
 
@@ -377,4 +377,16 @@ IType and Fetch.PcState -> one-hot + SpinalHDL one-hot fix.
     Registers: 336 vs 495
 
     Critical path in data load path to reg_wr
+
+Working Writeback stage
+
+* Speed: 76MHz vs 99MHz (Uses non-one-hot SpinalHDL version)
+
+* Area:
+
+    Logic elements: 1478 vs 1582
+
+    Registers: 386 vs 495
+
+    Critical path in fetch.
 

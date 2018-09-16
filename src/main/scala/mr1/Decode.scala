@@ -236,21 +236,23 @@ class Decode(config: MR1Config) extends Component {
     io.d2f.pc_jump_valid := io.e2d.pc_jump_valid
     io.d2f.pc_jump       := io.e2d.pc_jump
 
-    val rs1_valid =  (decode.iformat === InstrFormat.R) ||
-                     (decode.iformat === InstrFormat.I) ||
-                     (decode.iformat === InstrFormat.S) ||
-                     (decode.iformat === InstrFormat.B) ||
-                     (decode.iformat === InstrFormat.Shamt)
+    val trap = (decode.itype === InstrType.Undef)
 
-    val rs2_valid =  (decode.iformat === InstrFormat.R) ||
-                     (decode.iformat === InstrFormat.S) ||
-                     (decode.iformat === InstrFormat.B)
+    val rs1_valid =  ((decode.iformat === InstrFormat.R) ||
+                      (decode.iformat === InstrFormat.I) ||
+                      (decode.iformat === InstrFormat.S) ||
+                      (decode.iformat === InstrFormat.B) ||
+                      (decode.iformat === InstrFormat.Shamt)) && !trap
 
-    val rd_valid =   (decode.iformat === InstrFormat.R) ||
-                     (decode.iformat === InstrFormat.I) ||
-                     (decode.iformat === InstrFormat.U) ||
-                     (decode.iformat === InstrFormat.J) ||
-                     (decode.iformat === InstrFormat.Shamt)
+    val rs2_valid =  ((decode.iformat === InstrFormat.R) ||
+                      (decode.iformat === InstrFormat.S) ||
+                      (decode.iformat === InstrFormat.B)    ) && !trap
+
+    val rd_valid =   ((decode.iformat === InstrFormat.R) ||
+                      (decode.iformat === InstrFormat.I) ||
+                      (decode.iformat === InstrFormat.U) ||
+                      (decode.iformat === InstrFormat.J) ||
+                      (decode.iformat === InstrFormat.Shamt)) && !trap
 
     val rd_addr_final = rd_valid ? decode.rd_addr | U"5'd0"
 
@@ -308,7 +310,7 @@ class Decode(config: MR1Config) extends Component {
         when(decode_end){
             rvfi.order      := order
             rvfi.insn       := io.f2d.instr
-            rvfi.trap       := (decode.itype === InstrType.Undef)
+            rvfi.trap       := trap
             rvfi.halt       := False
             rvfi.intr       := False
             rvfi.rs1_addr   := rs1_valid ? decode.rs1_addr | 0

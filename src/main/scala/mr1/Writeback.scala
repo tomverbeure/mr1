@@ -56,9 +56,9 @@ class Writeback(config: MR1Config) extends Component {
     io.w2r.rd_wr_data   := rd_wdata
 
     // Feedback for RAW testing and bypass
-    io.rd_update.rd_waddr_valid := io.e2w.valid && io.e2w.rd_wr
+    io.rd_update.rd_waddr_valid := io.e2w.valid && rd_wr
     io.rd_update.rd_waddr       := io.e2w.rd_waddr
-    io.rd_update.rd_wdata_valid := rd_wr
+    io.rd_update.rd_wdata_valid := io.e2w.valid && rd_wr
     io.rd_update.rd_wdata       := rd_wdata
 
 

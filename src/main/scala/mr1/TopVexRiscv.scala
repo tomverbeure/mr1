@@ -57,8 +57,8 @@ class TopVexRiscv(config: MR1Config) extends Component {
         var dBus : DBusSimpleBus = null
 
         for(plugin <- vex.plugins) plugin match{
-            case plugin : IBusSimplePlugin => iBus <> plugin.iBus
-            case plugin : DBusSimplePlugin => dBus <> plugin.dBus
+            case plugin : IBusSimplePlugin => iBus = plugin.iBus
+            case plugin : DBusSimplePlugin => dBus = plugin.dBus
         }
 
         val cpu_ram = new cpu_ram()

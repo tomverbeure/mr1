@@ -19,8 +19,8 @@ object TopVerilog {
             supportCsr    = false
         )
 
-//        SpinalVerilog(new TopMR1(config))
-//        SpinalVerilog(new TopPicoRV32(config))
+        //SpinalVerilog(new TopMR1(config))
+        //SpinalVerilog(new TopPicoRV32(config))
 
         SpinalVerilog(new TopVexRiscv(config))
         //SpinalConfig(mergeAsyncProcess = false).generateVerilog(GenSmallestNoCsr.cpu())

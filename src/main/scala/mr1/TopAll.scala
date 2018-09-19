@@ -7,10 +7,10 @@ import vexriscv.demo._
 object TopVerilog {
     def main(args: Array[String]) {
 
-        SpinalVerilog(new MR1(config = MR1Config(supportFormal = true,
-                                                 supportMul = false,
-                                                 supportDiv = false,
-                                                 supportCsr = false)))
+//        SpinalVerilog(new MR1(config = MR1Config(supportFormal = true,
+//                                                supportMul = false,
+//                                                supportDiv = false,
+//                                                supportCsr = false)))
 
         val config = MR1Config(
             supportFormal = false,

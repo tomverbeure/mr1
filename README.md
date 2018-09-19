@@ -402,3 +402,112 @@ Add FF on data\_rsp (one-hot enabled SpinalHDL), remove raw critical path
 
     Critical path from instr to f2d.
 
+
+VexRiscv Dhrystone results:
+
+Baseline: GenSmallestNoCsr
+
+* 0.52 
+
+GenSmallestNoCsr + BarrelShifter:
+
+* 0.55 
+
+GenSmallestNoCsr + BarrelShifter (Early Injection):
+
+* 0.55 
+
+GenSmallestNoCsr + Mul & Div
+
+* 0.65
+
+GenSmallestNoCsr + Execute Bypass
+
+* 0.63
+
+GenSmallestNoCsr + Memory Bypass
+
+* 0.64
+
+GenSmallestNoCsr + Writeback Bypass
+
+* 0.64
+
+GenSmallestNoCsr + WritebackBuffer Bypass
+
+* 0.58
+
+GenSmallestNoCsr + Branch Prediction STATIC
+
+* 0.54
+
+GenSmallestNoCsr + Branch Prediction DYNAMIC
+
+* 0.54
+
+GenSmallestNoCsr + Branch Prediction DYNAMIC\_TARGET
+
+* 0.62
+
+GenSmallestNoCsr + Early Branch 
+
+* 0.56
+
+GenSmallestNoCsr + Src Early Insertion
+
+* 0.52
+
+-----
+
+GenSmallestNoCsr + BarrelShifter + Mul & Div
+
+* 0.71
+
+GenSmallestNoCsr + BarrelShifter + Mul & Div + Execute Bypass
+
+* 0.85
+
+GenSmallestNoCsr + BarrelShifter + Mul & Div + Execute Bypass + Memory Bypass
+
+* 0.93
+
+GenSmallestNoCsr + BarrelShifter + Mul & Div + Execute Bypass + Memory Bypass + Writeback Bypass
+
+* 1.09
+
+GenSmallestNoCsr + BarrelShifter + Mul & Div + Execute Bypass + Memory Bypass + Writeback Bypass + Writeback Buffer Bypass
+
+* 1.15
+
+GenSmallestNoCsr + BarrelShifter + Mul & Div + Execute Bypass + Memory Bypass + Writeback Bypass + Writeback Buffer Bypass + Branch Prediction STATIC
+
+* 1.21
+
+GenSmallestNoCsr + BarrelShifter + Mul & Div + Execute Bypass + Memory Bypass + Writeback Bypass + Writeback Buffer Bypass + Branch Prediction DYNAMIC
+
+* 1.25
+
+GenSmallestNoCsr + BarrelShifter + Mul & Div + Execute Bypass + Memory Bypass + Writeback Bypass + Writeback Buffer Bypass + Branch Prediction DYNAMIC\_TARGET
+
+* 1.39
+
+GenSmallestNoCsr + BarrelShifter (Early Injection)  + Mul & Div + Execute Bypass + Memory Bypass + Writeback Bypass + Writeback Buffer Bypass + Branch Prediction DYNAMIC\_TARGET + Early Branch
+
+* 1.44
+
+
+
+GenSmallestNoCsr + BarrelShifter + Mul & Div + Execute Bypass + Memory Bypass + Writeback Bypass + Writeback Buffer Bypass + Branch Prediction DYNAMIC + Early Branch
+
+* 1.31
+
+GenSmallestNoCsr + BarrelShifter (Early Injection)  + Mul & Div + Execute Bypass + Memory Bypass + Writeback Bypass + Writeback Buffer Bypass + Branch Prediction DYNAMIC + Early Branch
+
+* 1.32
+
+
+
+
+
+
+

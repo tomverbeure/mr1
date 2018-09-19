@@ -59,6 +59,7 @@ class TopVexRiscv(config: MR1Config) extends Component {
         for(plugin <- vex.plugins) plugin match{
             case plugin : IBusSimplePlugin => iBus = plugin.iBus
             case plugin : DBusSimplePlugin => dBus = plugin.dBus
+            case _ =>
         }
 
         val cpu_ram = new cpu_ram()
@@ -71,12 +72,13 @@ class TopVexRiscv(config: MR1Config) extends Component {
         cpu_ram.io.wren_a        := False
         cpu_ram.io.data_a        := 0
         iBus.rsp.inst            := cpu_ram.io.q_a
+        iBus.rsp.error           := False
 
         dBus.cmd.ready := True
 
         val wmask = dBus.cmd.size.mux(
-                        B"00"   -> B"0001",
-                        B"01"   -> B"0011",
+                        U"00"   -> B"0001",
+                        U"01"   -> B"0011",
                         default -> B"1111") |<< dBus.cmd.address(1 downto 0)
 
         dBus.rsp.ready := RegNext(dBus.cmd.valid && !dBus.cmd.wr) init(False)
@@ -86,6 +88,7 @@ class TopVexRiscv(config: MR1Config) extends Component {
         cpu_ram.io.byteena_b     := wmask
         cpu_ram.io.data_b        := dBus.cmd.payload.data
         dBus.rsp.data            := cpu_ram.io.q_b
+        dBus.rsp.error           := False
 
         val update_leds = dBus.cmd.valid && dBus.cmd.wr && dBus.cmd.address(19)
 

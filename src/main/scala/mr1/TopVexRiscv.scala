@@ -3,10 +3,11 @@ package mr1
 
 import spinal.core._
 
+import vexriscv._
 import vexriscv.demo._
 import vexriscv.plugin._
 
-class TopVexRiscv(config: MR1Config) extends Component {
+class TopVexRiscv(config: VexRiscvConfig) extends Component {
 
     val io = new Bundle {
         val osc_clk = in(Bool)
@@ -51,7 +52,7 @@ class TopVexRiscv(config: MR1Config) extends Component {
 
     val core = new ClockingArea(coreClockDomain) {
 
-        val vex = GenSmallestNoCsr.cpu()
+        val vex = new VexRiscv(config)
 
         var iBus : IBusSimpleBus = null
         var dBus : DBusSimpleBus = null

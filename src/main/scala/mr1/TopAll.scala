@@ -30,8 +30,8 @@ object TopVerilog {
                 new IBusSimplePlugin(
                     resetVector = 0x80000000l,
                     relaxedPcCalculation = false,
-//                    prediction = NONE,
-                    prediction = DYNAMIC_TARGET,
+                    prediction = NONE,
+//                    prediction = DYNAMIC_TARGET,
                     historyRamSizeLog2 = 8,
                     catchAccessFault = false,
                     compressedGen = false
@@ -50,8 +50,8 @@ object TopVerilog {
                     writeRfInMemoryStage = false
                 ),
                 new IntAluPlugin,
-                new MulPlugin,
-                new DivPlugin,
+//                new MulPlugin,
+//                new DivPlugin,
                 new SrcPlugin(
                     separatedAddSub = false,
                     executeInsertion = false
@@ -61,16 +61,16 @@ object TopVerilog {
                     earlyInjection = true
                 ),
                 new HazardSimplePlugin(
-                    bypassExecute           = true,
-                    bypassMemory            = true,
-                    bypassWriteBack         = true,
-                    bypassWriteBackBuffer   = true,
+                    bypassExecute           = false,
+                    bypassMemory            = false,
+                    bypassWriteBack         = false,
+                    bypassWriteBackBuffer   = false,
                     pessimisticUseSrc       = false,
                     pessimisticWriteRegFile = false,
                     pessimisticAddressMatch = false
                 ),
                 new BranchPlugin(
-                    earlyBranch = true,
+                    earlyBranch = false,
                     catchAddressMisaligned = false
                 ),
                 new YamlPlugin("cpu0.yaml")

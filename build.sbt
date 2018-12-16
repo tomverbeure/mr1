@@ -1,6 +1,3 @@
-name := "SpinalTemplateSbt"
-
-version := "1.0"
 
 lazy val root = (project in file(".")).
   settings(
@@ -10,12 +7,17 @@ lazy val root = (project in file(".")).
       version      := "0.1.0-SNAPSHOT"
     )),
     name := "superproject"
-  ).dependsOn(spinalHdlSim,spinalHdlCore,spinalHdlLib)
-lazy val spinalHdlSim = ProjectRef(file("/home/tom/projects/SpinalHDL"), "SpinalHDL-sim")
-lazy val spinalHdlCore = ProjectRef(file("/home/tom/projects/SpinalHDL"), "SpinalHDL-core")
-lazy val spinalHdlLib = ProjectRef(file("/home/tom/projects/SpinalHDL"), "SpinalHDL-lib")
+  ).dependsOn(vexRiscv)
+//lazy val vexRiscv = RootProject(uri("git://github.com/SpinalHDL/VexRiscv.git"))
+
+//If you want a specific git commit :
+//lazy val vexRiscv = RootProject(uri("git://github.com/SpinalHDL/VexRiscv.git#commitHash"))
+
+//If the dependancy is localy on your computer :
+lazy val vexRiscv = RootProject(file("/home/tom/projects/VexRiscv-new"))
 
 
 addCompilerPlugin("org.scala-lang.plugins" % "scala-continuations-plugin_2.11.6" % "1.0.2")
 scalacOptions += "-P:continuations:enable"
 fork := true
+

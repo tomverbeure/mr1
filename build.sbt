@@ -1,21 +1,16 @@
 
-lazy val root = (project in file(".")).
-  settings(
-    inThisBuild(List(
-      organization := "com.github.spinalhdl",
-      scalaVersion := "2.11.6",
-      version      := "0.1.0-SNAPSHOT"
-    )),
-    name := "superproject"
-  ).dependsOn(vexRiscv)
-//lazy val vexRiscv = RootProject(uri("git://github.com/SpinalHDL/VexRiscv.git"))
+name := "SpinalTemplateSbt"
 
-//If you want a specific git commit :
-//lazy val vexRiscv = RootProject(uri("git://github.com/SpinalHDL/VexRiscv.git#commitHash"))
+version := "1.0"
 
-//If the dependancy is localy on your computer :
-lazy val vexRiscv = RootProject(file("/home/tom/projects/VexRiscv-new"))
+scalaVersion := "2.11.6"
 
+EclipseKeys.withSource := true
+
+libraryDependencies ++= Seq(
+  "com.github.spinalhdl" % "spinalhdl-core_2.11" % "1.2.2",
+  "com.github.spinalhdl" % "spinalhdl-lib_2.11" % "1.2.2"
+)
 
 addCompilerPlugin("org.scala-lang.plugins" % "scala-continuations-plugin_2.11.6" % "1.0.2")
 scalacOptions += "-P:continuations:enable"

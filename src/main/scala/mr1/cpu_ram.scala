@@ -23,6 +23,6 @@ class cpu_ram extends BlackBox {
     mapCurrentClockDomain(io.clock)
     noIoPrefix()
 
-    addRTLPath("./quartus/altera_models/cpu_ram/cpu_ram_bb.v")
+    //addRTLPath("./quartus/altera_models/cpu_ram/cpu_ram_bb.v")
 }
 
